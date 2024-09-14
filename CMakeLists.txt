@@ -34,28 +34,28 @@ if(LIB_AVAHI)
 elseif(LIB_DNS_SD)
   message("Found libdns_sd.")
   target_sources(libmdnscpp PRIVATE
-    src/platforms/DnsSd/DnsSdPlatform.h
-    src/platforms/DnsSd/DnsSdPlatform.cpp
-    src/platforms/DnsSd/DnsSdRef.h
-    src/platforms/DnsSd/DnsSdRef.cpp
-    src/platforms/DnsSd/DnsSdBrowser.h
-    src/platforms/DnsSd/DnsSdBrowser.cpp
-    src/platforms/DnsSd/DnsSdResolve.h
-    src/platforms/DnsSd/DnsSdResolve.cpp
+    src/platforms/dns_sd/DnsSdPlatform.h
+    src/platforms/dns_sd/DnsSdPlatform.cpp
+    src/platforms/dns_sd/DnsSdRef.h
+    src/platforms/dns_sd/DnsSdRef.cpp
+    src/platforms/dns_sd/DnsSdBrowser.h
+    src/platforms/dns_sd/DnsSdBrowser.cpp
+    src/platforms/dns_sd/DnsSdResolve.h
+    src/platforms/dns_sd/DnsSdResolve.cpp
   )
   target_compile_definitions(libmdnscpp PRIVATE LIBMDNS_PLATFORM_DNSSD)
   target_link_libraries(libmdnscpp PRIVATE "${LIB_DNS_SD}")
 elseif(APPLE)
   message("Using apple dns_sd.")
   target_sources(libmdnscpp PRIVATE
-    src/platforms/DnsSd/DnsSdPlatform.h
-    src/platforms/DnsSd/DnsSdPlatform.cpp
-    src/platforms/DnsSd/DnsSdRef.h
-    src/platforms/DnsSd/DnsSdRef.cpp
-    src/platforms/DnsSd/DnsSdBrowser.h
-    src/platforms/DnsSd/DnsSdBrowser.cpp
-    src/platforms/DnsSd/DnsSdResolve.h
-    src/platforms/DnsSd/DnsSdResolve.cpp
+    src/platforms/dns_sd/DnsSdPlatform.h
+    src/platforms/dns_sd/DnsSdPlatform.cpp
+    src/platforms/dns_sd/DnsSdRef.h
+    src/platforms/dns_sd/DnsSdRef.cpp
+    src/platforms/dns_sd/DnsSdBrowser.h
+    src/platforms/dns_sd/DnsSdBrowser.cpp
+    src/platforms/dns_sd/DnsSdResolve.h
+    src/platforms/dns_sd/DnsSdResolve.cpp
   )
   target_compile_definitions(libmdnscpp PRIVATE LIBMDNS_PLATFORM_DNSSD)
 else()

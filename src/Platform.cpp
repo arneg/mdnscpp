@@ -6,7 +6,7 @@
 #ifdef LIBMDNS_PLATFORM_AVAHI
 #  include "platforms/avahi/AvahiPlatform.h"
 #elif defined(LIBMDNS_PLATFORM_DNSSD)
-#  include "platforms/DnsSd/DnsSdPlatform.h"
+#  include "platforms/dns_sd/DnsSdPlatform.h"
 #else
 #  error "No mdns platform library found."
 #endif
