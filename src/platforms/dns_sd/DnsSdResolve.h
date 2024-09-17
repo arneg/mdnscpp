@@ -5,6 +5,7 @@
 
 #include <dns_sd.h>
 
+#include "DnsSdGetAddrInfo.h"
 #include "DnsSdRef.h"
 
 namespace mdnscpp
@@ -25,6 +26,8 @@ namespace mdnscpp
     const std::string name_;
     const std::string type_;
     const std::string domain_;
+
+    std::shared_ptr<DnsSdGetAddrInfo> getaddrinfo_;
 
     void onResult(DNSServiceFlags flags, uint32_t interfaceIndex,
         DNSServiceErrorType errorCode, const char *fullname,

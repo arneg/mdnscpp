@@ -15,6 +15,8 @@ target_sources(libmdnscpp PRIVATE
   src/Platform.cpp
   src/EventLoop.cpp
   src/PollLoop.cpp
+  src/sockAddrToString.h
+  src/sockAddrToString.cpp
 )
 
 find_library(LIB_DNS_SD NAMES dns_sd)
@@ -31,7 +33,7 @@ if(LIB_AVAHI)
   )
   target_compile_definitions(libmdnscpp PRIVATE LIBMDNS_PLATFORM_AVAHI)
   target_link_libraries(libmdnscpp PRIVATE avahi-client)
-elseif(LIB_DNS_SD)
+elseif(LIB_DNS_SD OR APPLE)
   message("Found libdns_sd.")
   target_sources(libmdnscpp PRIVATE
     src/platforms/dns_sd/DnsSdPlatform.h
@@ -42,22 +44,14 @@ elseif(LIB_DNS_SD)
     src/platforms/dns_sd/DnsSdBrowser.cpp
     src/platforms/dns_sd/DnsSdResolve.h
     src/platforms/dns_sd/DnsSdResolve.cpp
+    src/platforms/dns_sd/DnsSdGetAddrInfo.h
+    src/platforms/dns_sd/DnsSdGetAddrInfo.cpp
   )
   target_compile_definitions(libmdnscpp PRIVATE LIBMDNS_PLATFORM_DNSSD)
-  target_link_libraries(libmdnscpp PRIVATE "${LIB_DNS_SD}")
-elseif(APPLE)
-  message("Using apple dns_sd.")
-  target_sources(libmdnscpp PRIVATE
-    src/platforms/dns_sd/DnsSdPlatform.h
-    src/platforms/dns_sd/DnsSdPlatform.cpp
-    src/platforms/dns_sd/DnsSdRef.h
-    src/platforms/dns_sd/DnsSdRef.cpp
-    src/platforms/dns_sd/DnsSdBrowser.h
-    src/platforms/dns_sd/DnsSdBrowser.cpp
-    src/platforms/dns_sd/DnsSdResolve.h
-    src/platforms/dns_sd/DnsSdResolve.cpp
-  )
-  target_compile_definitions(libmdnscpp PRIVATE LIBMDNS_PLATFORM_DNSSD)
+
+  if(LIB_DNS_SD)
+    target_link_libraries(libmdnscpp PRIVATE "${LIB_DNS_SD}")
+  endif(LIB_DNS_SD)
 else()
   message(FATAL_ERROR "No platform support found.")
 endif()

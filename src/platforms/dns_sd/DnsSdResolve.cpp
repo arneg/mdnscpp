@@ -14,18 +14,16 @@ namespace mdnscpp
       : DnsSdRef(platform, startResolve(interface, name, type, domain, this)),
         interface_(interface), name_(name), type_(type), domain_(domain)
   {
-    std::cerr << describe() << "DnsSdRef()" << std::endl;
+    std::cerr << describe() << std::endl;
   }
 
-  DnsSdResolve::~DnsSdResolve()
-  {
-    std::cerr << describe() << "~DnsSdRef()" << std::endl;
-  }
+  DnsSdResolve::~DnsSdResolve() { std::cerr << "~" << describe() << std::endl; }
 
   std::string DnsSdResolve::describe() const
   {
     std::string result = "DnsSdResolve(";
-    result += interface_;
+    result += "if ";
+    result += std::to_string(interface_);
     result += ", ";
     result += name_;
     result += ", ";
@@ -67,11 +65,10 @@ namespace mdnscpp
       std::cerr << "Resolved " << fullname << " to " << hosttarget << " with "
                 << txtLen << " bytes of txt records " << std::endl;
 
+      getaddrinfo_ = std::make_shared<DnsSdGetAddrInfo>(
+          platform_, interfaceIndex, hosttarget);
+
       close();
-
-      const auto result = gethostbyname(hosttarget);
-
-      std::cerr << "gethostbyname returned" << std::endl;
     }
   }
 
