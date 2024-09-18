@@ -15,7 +15,9 @@ namespace mdnscpp
 {
   class DnsSdPlatform;
 
-  class DnsSdBrowser : DnsSdRef, public Browser
+  class DnsSdBrowser : DnsSdRef,
+                       public Browser,
+                       public std::enable_shared_from_this<DnsSdBrowser>
   {
   public:
     DnsSdBrowser(std::shared_ptr<DnsSdPlatform> platform,
@@ -26,6 +28,8 @@ namespace mdnscpp
     ~DnsSdBrowser();
 
     std::string describe() const;
+
+    using DnsSdRef::getPlatform;
 
   private:
     std::vector<std::shared_ptr<DnsSdResolve>> resolves_;

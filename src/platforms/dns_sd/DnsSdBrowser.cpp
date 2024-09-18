@@ -66,8 +66,8 @@ namespace mdnscpp
     if (flags & kDNSServiceFlagsAdd)
     {
       std::cerr << describe() << " Service found " << serviceName << std::endl;
-      resolves_.push_back(std::make_shared<DnsSdResolve>(
-          platform_, interfaceIndex, serviceName, regtype, replyDomain));
+      resolves_.push_back(std::make_shared<DnsSdResolve>(shared_from_this(),
+          interfaceIndex, serviceName, regtype, replyDomain));
     }
     else
     {

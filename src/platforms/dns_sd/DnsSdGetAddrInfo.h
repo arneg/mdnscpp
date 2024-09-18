@@ -9,17 +9,18 @@
 
 namespace mdnscpp
 {
-  class DnsSdPlatform;
+  class DnsSdResolve;
   class DnsSdGetAddrInfo : DnsSdRef
   {
   public:
-    DnsSdGetAddrInfo(std::shared_ptr<DnsSdPlatform> platform, size_t interface,
+    DnsSdGetAddrInfo(std::shared_ptr<DnsSdResolve> resolve, size_t interface,
         const std::string &hostname);
     ~DnsSdGetAddrInfo();
 
     std::string describe() const;
 
   private:
+    const std::shared_ptr<DnsSdResolve> resolve_;
     const size_t interface_;
     const std::string hostname_;
 

@@ -29,6 +29,11 @@ namespace mdnscpp
     }
   }
 
+  std::shared_ptr<DnsSdPlatform> DnsSdRef::getPlatform() const
+  {
+    return platform_;
+  }
+
   void DnsSdRef::process()
   {
     if (sdRef_)

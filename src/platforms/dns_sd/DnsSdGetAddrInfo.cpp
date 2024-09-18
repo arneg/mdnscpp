@@ -1,7 +1,11 @@
 #include "DnsSdGetAddrInfo.h"
 
 #include "../../sockAddrToString.h"
+#include "DnsSdBrowser.h"
 #include "DnsSdPlatform.h"
+#include "DnsSdResolve.h"
+
+#include <mdnscpp/BrowseResult.h>
 
 #include <iostream>
 #include <stdexcept>
@@ -12,10 +16,11 @@
 
 namespace mdnscpp
 {
-  DnsSdGetAddrInfo::DnsSdGetAddrInfo(std::shared_ptr<DnsSdPlatform> platform,
+  DnsSdGetAddrInfo::DnsSdGetAddrInfo(std::shared_ptr<DnsSdResolve> resolve,
       size_t interface, const std::string &hostname)
-      : DnsSdRef(platform, startGetAddrInfo(interface, hostname, this)),
-        interface_(interface), hostname_(hostname)
+      : DnsSdRef(resolve->getPlatform(),
+            startGetAddrInfo(interface, hostname, this)),
+        resolve_(resolve), interface_(interface), hostname_(hostname)
   {
     std::cerr << describe() << "" << std::endl;
   }
@@ -42,6 +47,14 @@ namespace mdnscpp
   {
     std::cerr << describe() << ": get addr info " << sockAddrToString(address)
               << std::endl;
+
+    auto browser = resolve_->getBrowser();
+
+    BrowseResult result{{}, browser->getType(), browser->getProtocol(),
+        resolve_->getName(), resolve_->getDomain(), hostname,
+        sockAddrToString(address), resolve_->getInterface()};
+
+    std::cerr << "Got result: " << result.describe() << std::endl;
   }
 
   DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfo(

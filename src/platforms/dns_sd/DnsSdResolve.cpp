@@ -1,5 +1,6 @@
 #include "DnsSdResolve.h"
 
+#include "DnsSdBrowser.h"
 #include "DnsSdPlatform.h"
 
 #include <iostream>
@@ -8,11 +9,13 @@
 
 namespace mdnscpp
 {
-  DnsSdResolve::DnsSdResolve(std::shared_ptr<DnsSdPlatform> platform,
+  DnsSdResolve::DnsSdResolve(std::shared_ptr<DnsSdBrowser> browser,
       size_t interface, const std::string &name, const std::string &type,
       const std::string &domain)
-      : DnsSdRef(platform, startResolve(interface, name, type, domain, this)),
-        interface_(interface), name_(name), type_(type), domain_(domain)
+      : DnsSdRef(browser->getPlatform(),
+            startResolve(interface, name, type, domain, this)),
+        browser_(browser), interface_(interface), name_(name), type_(type),
+        domain_(domain)
   {
     std::cerr << describe() << std::endl;
   }
@@ -33,6 +36,19 @@ namespace mdnscpp
     result += ")";
     return result;
   }
+
+  std::shared_ptr<DnsSdBrowser> DnsSdResolve::getBrowser() const
+  {
+    return browser_;
+  }
+
+  const std::string &DnsSdResolve::getName() const { return name_; }
+
+  const std::string &DnsSdResolve::getType() const { return type_; }
+
+  const std::string &DnsSdResolve::getDomain() const { return domain_; }
+
+  size_t DnsSdResolve::getInterface() const { return interface_; }
 
   DNSServiceRef DnsSdResolve::startResolve(size_t interface,
       const std::string &name, const std::string &type,
@@ -66,7 +82,7 @@ namespace mdnscpp
                 << txtLen << " bytes of txt records " << std::endl;
 
       getaddrinfo_ = std::make_shared<DnsSdGetAddrInfo>(
-          platform_, interfaceIndex, hosttarget);
+          shared_from_this(), interfaceIndex, hosttarget);
 
       close();
     }

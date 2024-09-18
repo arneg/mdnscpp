@@ -18,6 +18,8 @@ namespace mdnscpp
 
     void close();
 
+    std::shared_ptr<DnsSdPlatform> getPlatform() const;
+
   protected:
     std::shared_ptr<DnsSdPlatform> platform_;
     std::shared_ptr<EventLoop::Watch> watch_;
