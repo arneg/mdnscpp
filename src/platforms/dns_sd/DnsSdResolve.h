@@ -7,6 +7,7 @@
 
 #include "DnsSdGetAddrInfo.h"
 #include "DnsSdRef.h"
+#include <mdnscpp/TxtRecord.h>
 
 namespace mdnscpp
 {
@@ -28,13 +29,15 @@ namespace mdnscpp
     const std::string &getType() const;
     const std::string &getDomain() const;
     size_t getInterface() const;
+    const std::vector<TxtRecord> getTxtRecords() const;
 
   private:
-    const std::shared_ptr<DnsSdBrowser> browser_;
+    const std::weak_ptr<DnsSdBrowser> browser_;
     const size_t interface_;
     const std::string name_;
     const std::string type_;
     const std::string domain_;
+    std::vector<TxtRecord> txtRecords_;
 
     std::shared_ptr<DnsSdGetAddrInfo> getaddrinfo_;
 

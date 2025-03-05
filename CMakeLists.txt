@@ -17,6 +17,8 @@ target_sources(libmdnscpp PRIVATE
   src/PollLoop.cpp
   src/sockAddrToString.h
   src/sockAddrToString.cpp
+  src/sockAddrToIPProtocol.h
+  src/sockAddrToIPProtocol.cpp
 )
 
 find_library(LIB_DNS_SD NAMES dns_sd)

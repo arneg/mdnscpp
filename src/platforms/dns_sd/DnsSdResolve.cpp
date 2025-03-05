@@ -9,6 +9,45 @@
 
 namespace mdnscpp
 {
+  static std::vector<TxtRecord> parseTxtRecords(
+      const unsigned char *src, uint16_t length)
+  {
+    std::vector<TxtRecord> result;
+    uint16_t count = TXTRecordGetCount(length, src);
+
+    result.reserve(count);
+
+    for (uint16_t index = 0; index < count; index++)
+    {
+      TxtRecord record;
+      uint8_t valueLength = 0;
+      const void *valueBuffer = nullptr;
+
+      record.key.resize(256);
+
+      auto error = TXTRecordGetItemAtIndex(length, src, index,
+          record.key.size(), record.key.data(), &valueLength, &valueBuffer);
+
+      if (error != kDNSServiceErr_NoError)
+      {
+        throw std::logic_error("Should not happen.");
+      }
+
+      record.key.resize(strlen(record.key.c_str()));
+
+      if (valueBuffer)
+      {
+        std::string tmp{
+            reinterpret_cast<const char *>(valueBuffer), size_t{valueLength}};
+        record.value.emplace(std::move(tmp));
+      }
+
+      result.emplace_back(std::move(record));
+    }
+
+    return result;
+  }
+
   DnsSdResolve::DnsSdResolve(std::shared_ptr<DnsSdBrowser> browser,
       size_t interface, const std::string &name, const std::string &type,
       const std::string &domain)
@@ -39,7 +78,12 @@ namespace mdnscpp
 
   std::shared_ptr<DnsSdBrowser> DnsSdResolve::getBrowser() const
   {
-    return browser_;
+    auto browser = browser_.lock();
+    if (!browser)
+    {
+      throw std::logic_error("DnsSdResolve detached from parent DnsSdBrowser");
+    }
+    return browser;
   }
 
   const std::string &DnsSdResolve::getName() const { return name_; }
@@ -49,6 +93,11 @@ namespace mdnscpp
   const std::string &DnsSdResolve::getDomain() const { return domain_; }
 
   size_t DnsSdResolve::getInterface() const { return interface_; }
+
+  const std::vector<TxtRecord> DnsSdResolve::getTxtRecords() const
+  {
+    return txtRecords_;
+  }
 
   DNSServiceRef DnsSdResolve::startResolve(size_t interface,
       const std::string &name, const std::string &type,
@@ -78,8 +127,10 @@ namespace mdnscpp
     }
     else
     {
-      std::cerr << "Resolved " << fullname << " to " << hosttarget << " with "
-                << txtLen << " bytes of txt records " << std::endl;
+      std::cerr << describe() << "Resolved " << fullname << " to " << hosttarget
+                << " with " << txtLen << " bytes of txt records " << std::endl;
+
+      txtRecords_ = parseTxtRecords(txtRecord, txtLen);
 
       getaddrinfo_ = std::make_shared<DnsSdGetAddrInfo>(
           shared_from_this(), interfaceIndex, hosttarget);

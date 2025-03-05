@@ -15,6 +15,7 @@ namespace mdnscpp
   const std::string &BrowseResult::getAddress() const { return address_; }
 
   size_t BrowseResult::getInterface() const { return interface_; }
+  IPProtocol BrowseResult::getIPProtocol() const { return ipProtocol_; }
 
   std::string BrowseResult::describe() const
   {
@@ -41,6 +42,28 @@ namespace mdnscpp
     result += ", interface: ";
     result += std::to_string(getInterface());
 
+    result += ", ipProtocol: ";
+    result += describeIPProtocol(getIPProtocol());
+
+    result += ", txt: [";
+    for (size_t i = 0; i < txtRecords_.size(); i++)
+    {
+      const auto &record = txtRecords_[i];
+      if (i)
+        result += ", ";
+      result += record.key;
+      result += "=";
+      if (record.value)
+      {
+        result += *record.value;
+      }
+      else
+      {
+        result += "(nul)";
+      }
+    }
+    result += "]";
+
     result += ")";
 
     return result;
@@ -49,10 +72,10 @@ namespace mdnscpp
   BrowseResult::BrowseResult(std::vector<TxtRecord> txtRecords,
       std::string type, std::string protocol, std::string name,
       std::string domain, std::string hostname, std::string address,
-      size_t interface)
+      size_t interface, IPProtocol ipProtocol)
       : txtRecords_(txtRecords), type_(type), protocol_(protocol), name_(name),
         domain_(domain), hostname_(hostname), address_(address),
-        interface_(interface)
+        interface_(interface), ipProtocol_(ipProtocol)
   {
   }
 }; // namespace mdnscpp

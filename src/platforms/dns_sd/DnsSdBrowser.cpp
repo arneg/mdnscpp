@@ -11,8 +11,8 @@ namespace mdnscpp
 {
   DnsSdBrowser::DnsSdBrowser(std::shared_ptr<DnsSdPlatform> platform,
       const std::string &type, const std::string &protocol,
-      std::function<void(const Browser &)> onResultsChanged,
-      const std::string &domain, size_t interface, IPProtocol ipProtocol)
+      ResultsChangedCallback onResultsChanged, const std::string &domain,
+      size_t interface, IPProtocol ipProtocol)
       : DnsSdRef(
             platform, startBrowse(type, protocol, domain, interface, this)),
         Browser(type, protocol, onResultsChanged, domain, interface, ipProtocol)
@@ -63,16 +63,34 @@ namespace mdnscpp
       return;
     }
 
+    std::string key;
+
+    key.reserve(32);
+
+    key += std::to_string(interfaceIndex);
+    key += ",";
+    key += regtype;
+    key += replyDomain;
+    key += ",";
+    key += serviceName;
+
     if (flags & kDNSServiceFlagsAdd)
     {
-      std::cerr << describe() << " Service found " << serviceName << std::endl;
-      resolves_.push_back(std::make_shared<DnsSdResolve>(shared_from_this(),
-          interfaceIndex, serviceName, regtype, replyDomain));
+      std::cerr << describe() << " Service found "
+                << "serviceName " << serviceName << ", "
+                << "regtype " << regtype << ", "
+                << "replyDomain " << replyDomain << std::endl;
+
+      resolves_[key] = std::make_shared<DnsSdResolve>(shared_from_this(),
+          interfaceIndex, serviceName, regtype, replyDomain);
     }
     else
     {
-      std::cerr << describe() << " Service removed " << serviceName
-                << std::endl;
+      resolves_.erase(key);
+      std::cerr << describe() << " Service removed "
+                << "serviceName " << serviceName << ", "
+                << "regtype " << regtype << ", "
+                << "replyDomain " << replyDomain << std::endl;
     }
   }
 
@@ -83,5 +101,10 @@ namespace mdnscpp
   {
     reinterpret_cast<DnsSdBrowser *>(context)->browseResult(
         interfaceIndex, errorCode, flags, serviceName, regtype, replyDomain);
+  }
+
+  std::shared_ptr<Browser> DnsSdBrowser::getSharedFromThis()
+  {
+    return shared_from_this();
   }
 } // namespace mdnscpp

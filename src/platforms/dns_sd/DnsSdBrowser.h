@@ -3,7 +3,7 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <vector>
+#include <unordered_map>
 
 #include <dns_sd.h>
 
@@ -22,8 +22,8 @@ namespace mdnscpp
   public:
     DnsSdBrowser(std::shared_ptr<DnsSdPlatform> platform,
         const std::string &type, const std::string &protocol,
-        std::function<void(const Browser &)> onResultsChanged,
-        const std::string &domain, size_t interface, IPProtocol ipProtocol);
+        ResultsChangedCallback onResultsChanged, const std::string &domain,
+        size_t interface, IPProtocol ipProtocol);
 
     ~DnsSdBrowser();
 
@@ -31,8 +31,11 @@ namespace mdnscpp
 
     using DnsSdRef::getPlatform;
 
+  protected:
+    std::shared_ptr<Browser> getSharedFromThis() override;
+
   private:
-    std::vector<std::shared_ptr<DnsSdResolve>> resolves_;
+    std::unordered_map<std::string, std::shared_ptr<DnsSdResolve>> resolves_;
 
     void browseResult(uint32_t interfaceIndex, DNSServiceErrorType errorCode,
         DNSServiceFlags flags, const char *serviceName, const char *regtype,

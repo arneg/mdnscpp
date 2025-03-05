@@ -1,5 +1,6 @@
 #include "DnsSdGetAddrInfo.h"
 
+#include "../../sockAddrToIPProtocol.h"
 #include "../../sockAddrToString.h"
 #include "DnsSdBrowser.h"
 #include "DnsSdPlatform.h"
@@ -22,7 +23,7 @@ namespace mdnscpp
             startGetAddrInfo(interface, hostname, this)),
         resolve_(resolve), interface_(interface), hostname_(hostname)
   {
-    std::cerr << describe() << "" << std::endl;
+    std::cerr << describe() << " created " << std::endl;
   }
 
   DnsSdGetAddrInfo::~DnsSdGetAddrInfo()
@@ -41,20 +42,32 @@ namespace mdnscpp
     return result;
   }
 
+  std::shared_ptr<DnsSdResolve> DnsSdGetAddrInfo::getResolve()
+  {
+    auto result = resolve_.lock();
+    if (!result)
+      throw std::logic_error(
+          "DnsSdGetAddrInfo() detached from parent DnsSdGetResolve().");
+    return result;
+  }
+
   void DnsSdGetAddrInfo::onResult(DNSServiceFlags flags,
       uint32_t interfaceIndex, DNSServiceErrorType errorCode,
       const char *hostname, const struct sockaddr *address, uint32_t ttl)
   {
-    std::cerr << describe() << ": get addr info " << sockAddrToString(address)
-              << std::endl;
+    auto ipAddress = sockAddrToString(address);
+    std::cerr << describe() << ".onResult(" << ipAddress << ")" << std::endl;
 
-    auto browser = resolve_->getBrowser();
+    auto resolve = getResolve();
+    auto browser = resolve->getBrowser();
 
-    BrowseResult result{{}, browser->getType(), browser->getProtocol(),
-        resolve_->getName(), resolve_->getDomain(), hostname,
-        sockAddrToString(address), resolve_->getInterface()};
+    std::vector<TxtRecord> txtRecords;
 
-    std::cerr << "Got result: " << result.describe() << std::endl;
+    resultRemovalContext_[ipAddress] = browser->addResult(
+        std::make_shared<BrowseResult>(resolve->getTxtRecords(),
+            browser->getType(), browser->getProtocol(), resolve->getName(),
+            resolve->getDomain(), hostname, ipAddress, resolve->getInterface(),
+            sockAddrToIPProtocol(address)));
   }
 
   DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfo(

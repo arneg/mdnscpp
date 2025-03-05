@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include <dns_sd.h>
 
@@ -19,10 +20,15 @@ namespace mdnscpp
 
     std::string describe() const;
 
+    std::shared_ptr<DnsSdResolve> getResolve();
+
   private:
-    const std::shared_ptr<DnsSdResolve> resolve_;
+    const std::weak_ptr<DnsSdResolve> resolve_;
     const size_t interface_;
     const std::string hostname_;
+
+    std::unordered_map<std::string, std::shared_ptr<void>>
+        resultRemovalContext_;
 
     void onResult(DNSServiceFlags flags, uint32_t interfaceIndex,
         DNSServiceErrorType errorCode, const char *hostname,

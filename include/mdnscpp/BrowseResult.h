@@ -4,11 +4,11 @@
 #include <utility>
 #include <vector>
 
+#include "TxtRecord.h"
+#include "Types.h"
+
 namespace mdnscpp
 {
-
-  using TxtRecord = std::pair<std::string, std::string>;
-
   class BrowseResult
   {
   public:
@@ -43,11 +43,14 @@ namespace mdnscpp
     /** The interface index this service was found on. */
     size_t getInterface() const;
 
+    IPProtocol getIPProtocol() const;
+
     BrowseResult(const BrowseResult &) = default;
     BrowseResult(BrowseResult &&) = default;
     BrowseResult(std::vector<TxtRecord> txtRecords, std::string type,
         std::string protocol, std::string name, std::string domain,
-        std::string hostname, std::string address, size_t interface);
+        std::string hostname, std::string address, size_t interface,
+        IPProtocol ipProtocol);
 
   private:
     std::vector<TxtRecord> txtRecords_;
@@ -58,5 +61,6 @@ namespace mdnscpp
     std::string hostname_;
     std::string address_;
     size_t interface_;
+    IPProtocol ipProtocol_;
   };
 } // namespace mdnscpp
