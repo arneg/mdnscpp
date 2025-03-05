@@ -12,10 +12,10 @@ namespace mdnscpp
   DnsSdBrowser::DnsSdBrowser(std::shared_ptr<DnsSdPlatform> platform,
       const std::string &type, const std::string &protocol,
       std::function<void(const Browser &)> onResultsChanged,
-      const std::string &domain, size_t interface)
+      const std::string &domain, size_t interface, IPProtocol ipProtocol)
       : DnsSdRef(
             platform, startBrowse(type, protocol, domain, interface, this)),
-        Browser(type, protocol, onResultsChanged, domain, interface)
+        Browser(type, protocol, onResultsChanged, domain, interface, ipProtocol)
   {
   }
 
