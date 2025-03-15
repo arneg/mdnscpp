@@ -67,7 +67,7 @@ namespace mdnscpp
 
     updatePollFds();
 
-    std::cerr << "Calling poll with " << pollfds_.size() << " fds" << std::endl;
+    //std::cerr << "Calling poll with " << pollfds_.size() << " fds" << std::endl;
 
     int nready = poll(pollfds_.data(), pollfds_.size(), getSmallestTimeout());
 
@@ -131,7 +131,7 @@ namespace mdnscpp
   std::shared_ptr<EventLoop::Timeout> PollLoop::createTimeout(
       TimeoutState state, Timeout::Callback callback)
   {
-    std::cerr << "creating timeout" << std::endl;
+    //std::cerr << "creating timeout" << std::endl;
     return std::make_shared<PollTimeout>(*this, state, callback);
   }
 

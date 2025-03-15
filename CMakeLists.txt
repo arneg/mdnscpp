@@ -10,6 +10,7 @@ target_sources(libmdnscpp PRIVATE
   include/mdnscpp/Platform.h
   include/mdnscpp/EventLoop.h
   include/mdnscpp/PollLoop.h
+  include/mdnscpp/utils.h
   src/BrowseResult.cpp
   src/Browser.cpp
   src/Platform.cpp
@@ -19,6 +20,7 @@ target_sources(libmdnscpp PRIVATE
   src/sockAddrToString.cpp
   src/sockAddrToIPProtocol.h
   src/sockAddrToIPProtocol.cpp
+  src/utils.cpp
 )
 
 find_library(LIB_DNS_SD NAMES dns_sd)

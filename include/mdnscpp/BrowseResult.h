@@ -26,6 +26,12 @@ namespace mdnscpp
     /** The service name. */
     const std::string &getName() const;
 
+    /** 
+     * Returns the full service name, e.g. example._http._tcp.local. In usual situations this
+     * will uniquely identity a service.
+     */
+    const std::string &getFullname() const;
+
     /** The domain, e.g. `local`. */
     const std::string &getDomain() const;
 
@@ -45,12 +51,15 @@ namespace mdnscpp
 
     IPProtocol getIPProtocol() const;
 
-    BrowseResult(const BrowseResult &) = default;
-    BrowseResult(BrowseResult &&) = default;
     BrowseResult(std::vector<TxtRecord> txtRecords, std::string type,
         std::string protocol, std::string name, std::string domain,
         std::string hostname, std::string address, size_t interface,
         IPProtocol ipProtocol);
+
+    /**
+     * Returns true if this result is less than (i.e. ordered before) the result.
+     */
+    bool operator<(const BrowseResult &b) const;
 
   private:
     std::vector<TxtRecord> txtRecords_;
@@ -60,6 +69,7 @@ namespace mdnscpp
     std::string domain_;
     std::string hostname_;
     std::string address_;
+    std::string fullname_;
     size_t interface_;
     IPProtocol ipProtocol_;
   };

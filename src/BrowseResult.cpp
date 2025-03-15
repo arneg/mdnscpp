@@ -1,5 +1,7 @@
 #include <mdnscpp/BrowseResult.h>
 
+#include <tuple>
+
 namespace mdnscpp
 {
   const std::vector<TxtRecord> &BrowseResult::getTxtRecords() const
@@ -13,6 +15,7 @@ namespace mdnscpp
   const std::string &BrowseResult::getDomain() const { return domain_; }
   const std::string &BrowseResult::getHostname() const { return hostname_; }
   const std::string &BrowseResult::getAddress() const { return address_; }
+  const std::string &BrowseResult::getFullname() const { return fullname_; }
 
   size_t BrowseResult::getInterface() const { return interface_; }
   IPProtocol BrowseResult::getIPProtocol() const { return ipProtocol_; }
@@ -69,13 +72,23 @@ namespace mdnscpp
     return result;
   }
 
+  bool BrowseResult::operator<(const BrowseResult &b) const
+  {
+    return std::tie(fullname_, hostname_, interface_, ipProtocol_, address_) <
+           std::tie(b.fullname_, b.hostname_, b.interface_, b.ipProtocol_,
+               b.address_);
+  }
+
   BrowseResult::BrowseResult(std::vector<TxtRecord> txtRecords,
       std::string type, std::string protocol, std::string name,
       std::string domain, std::string hostname, std::string address,
       size_t interface, IPProtocol ipProtocol)
-      : txtRecords_(txtRecords), type_(type), protocol_(protocol), name_(name),
-        domain_(domain), hostname_(hostname), address_(address),
-        interface_(interface), ipProtocol_(ipProtocol)
+      : txtRecords_(std::move(txtRecords)), type_(std::move(type)),
+        protocol_(std::move(protocol)), name_(std::move(name)),
+        domain_(std::move(domain)), hostname_(std::move(hostname)),
+        address_(std::move(address)), interface_(interface),
+        ipProtocol_(ipProtocol)
   {
+    fullname_ = name_ + "." + type_ + "." + protocol_ + "." + domain;
   }
 }; // namespace mdnscpp
