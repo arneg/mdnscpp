@@ -9,14 +9,12 @@ target_sources(libmdnscpp PRIVATE
   include/mdnscpp/Browser.h
   include/mdnscpp/Platform.h
   include/mdnscpp/EventLoop.h
-  include/mdnscpp/PollLoop.h
   include/mdnscpp/CallQueue.h
   include/mdnscpp/utils.h
   src/BrowseResult.cpp
   src/Browser.cpp
   src/Platform.cpp
   src/EventLoop.cpp
-  src/PollLoop.cpp
   src/CallQueue.cpp
   src/sockAddrToString.h
   src/sockAddrToString.cpp
@@ -28,6 +26,14 @@ target_sources(libmdnscpp PRIVATE
 find_library(LIB_DNS_SD NAMES dns_sd)
 find_library(LIB_AVAHI NAMES avahi-client)
 
+if(WIN32)
+else()
+  target_sources(libmdnscpp PRIVATE
+    include/mdnscpp/PollLoop.h
+    src/PollLoop.cpp
+  )
+endif()
+
 if(LIB_AVAHI)
   message("Found avahi.")
 
@@ -37,7 +43,7 @@ if(LIB_AVAHI)
     src/platforms/avahi/AvahiBrowser.h
     src/platforms/avahi/AvahiBrowser.cpp
   )
-  target_compile_definitions(libmdnscpp PRIVATE LIBMDNS_PLATFORM_AVAHI)
+  target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_PLATFORM_AVAHI)
   target_link_libraries(libmdnscpp PRIVATE avahi-client)
 elseif(LIB_DNS_SD OR APPLE)
   message("Found libdns_sd.")
@@ -53,11 +59,20 @@ elseif(LIB_DNS_SD OR APPLE)
     src/platforms/dns_sd/DnsSdGetAddrInfo.h
     src/platforms/dns_sd/DnsSdGetAddrInfo.cpp
   )
-  target_compile_definitions(libmdnscpp PRIVATE LIBMDNS_PLATFORM_DNSSD)
+  target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_PLATFORM_DNSSD)
 
   if(LIB_DNS_SD)
     target_link_libraries(libmdnscpp PRIVATE "${LIB_DNS_SD}")
   endif(LIB_DNS_SD)
+elseif(WIN32)
+  message("Detected win32 platform.")
+  target_sources(libmdnscpp PRIVATE 
+    src/platforms/win32/Win32Browser.cpp
+    src/platforms/win32/Win32Browser.h
+    src/platforms/win32/Win32Platform.cpp
+    src/platforms/win32/Win32Platform.h
+  )
+  target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_PLATFORM_WIN32)
 else()
   message(FATAL_ERROR "No platform support found.")
 endif()

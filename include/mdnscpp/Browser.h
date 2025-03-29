@@ -19,7 +19,7 @@ namespace mdnscpp
 
     Browser(const std::string &type, const std::string &protocol,
         ResultsChangedCallback onResultsChanged, const std::string &domain,
-        size_t interface, IPProtocol ipProtocol);
+        size_t interfaceIndex, IPProtocol ipProtocol);
     virtual ~Browser() = default;
 
     const std::string &getType() const;
@@ -38,7 +38,7 @@ namespace mdnscpp
     const std::string protocol_;
     const ResultsChangedCallback onResultsChanged_;
     const std::string domain_;
-    const size_t interface_;
+    const size_t interfaceIndex_;
     const IPProtocol ipProtocol_;
 
     virtual std::shared_ptr<Browser> getSharedFromThis() = 0;

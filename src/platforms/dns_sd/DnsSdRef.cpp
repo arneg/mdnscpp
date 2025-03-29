@@ -12,9 +12,9 @@ namespace mdnscpp
     if (sdRef_)
     {
       int fd = DNSServiceRefSockFD(sdRef_);
-      watch_ =
-          platform->getEventLoop().createWatch(fd, EventLoop::EventType::READ,
-              [this](EventLoop::EventType) { process(); });
+      watch_ = platform->getEventLoop().createWatch(fd,
+          EventLoop::EventType::TYPE_READ,
+          [this](EventLoop::EventType) { process(); });
     }
   }
 

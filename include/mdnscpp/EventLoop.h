@@ -7,7 +7,11 @@
 #include <variant>
 #include <vector>
 
-#include <sys/time.h>
+#ifdef LIBMDNS_PLATFORM_WIN32
+#  include <Winsock2.h>
+#else
+#  include <sys/time.h>
+#endif
 
 namespace mdnscpp
 {
@@ -35,10 +39,10 @@ namespace mdnscpp
       void setDisconnect();
       void setError();
 
-      static const EventType READ;
-      static const EventType WRITE;
-      static const EventType DISCONNECT;
-      static const EventType ERROR;
+      static const EventType TYPE_READ;
+      static const EventType TYPE_WRITE;
+      static const EventType TYPE_DISCONNECT;
+      static const EventType TYPE_ERROR;
 
     private:
       explicit EventType(uint8_t flags);

@@ -8,8 +8,8 @@ namespace mdnscpp
   AvahiBrowser::AvahiBrowser(std::shared_ptr<AvahiPlatform> platform,
       const std::string &type, const std::string &protocol,
       std::function<void(const Browser &)> onResultsChanged,
-      const std::string &domain, size_t interface)
-      : Browser(type, protocol, onResultsChanged, domain, interface)
+      const std::string &domain, size_t interfaceIndex)
+      : Browser(type, protocol, onResultsChanged, domain, interfaceIndex)
   {
     std::string tmp = type + "." + protocol;
     avahiBrowser_ = avahi_service_browser_new(platform->getAvahiClient(),
@@ -31,27 +31,27 @@ namespace mdnscpp
     result += ", ";
     result += domain_;
     result += ", ";
-    result += interface_;
+    result += interfaceIndex_;
     result += ")";
     return result;
   }
 
-  void AvahiBrowser::resultCallback(AvahiIfIndex interface,
+  void AvahiBrowser::resultCallback(AvahiIfIndex interfaceIndex,
       AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
       const char *type, const char *domain, AvahiLookupResultFlags flags)
   {
     std::cerr << describe() << " avahiServiceBrowserCallback("
               << (name ? name : "nil") << ", " << (type ? type : "nil") << ", "
-              << (domain ? domain : "nil") << ", " << interface << ")"
+              << (domain ? domain : "nil") << ", " << interfaceIndex << ")"
               << std::endl;
   }
 
   void AvahiBrowser::avahiServiceBrowserCallback(AvahiServiceBrowser *b,
-      AvahiIfIndex interface, AvahiProtocol protocol, AvahiBrowserEvent event,
-      const char *name, const char *type, const char *domain,
-      AvahiLookupResultFlags flags, void *userdata)
+      AvahiIfIndex interfaceIndex, AvahiProtocol protocol,
+      AvahiBrowserEvent event, const char *name, const char *type,
+      const char *domain, AvahiLookupResultFlags flags, void *userdata)
   {
     reinterpret_cast<AvahiBrowser *>(userdata)->resultCallback(
-        interface, protocol, event, name, type, domain, flags);
+        interfaceIndex, protocol, event, name, type, domain, flags);
   }
 } // namespace mdnscpp

@@ -1,5 +1,7 @@
 #include "sockAddrToString.h"
 
+#include <stdexcept>
+
 static inline void resizeToNullByte(std::string &str)
 {
   const auto pos = str.find_first_of('\0');

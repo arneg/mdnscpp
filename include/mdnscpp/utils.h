@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BrowseResult.h"
+#include <memory>
 #include <unordered_set>
 #include <vector>
 

@@ -49,12 +49,12 @@ namespace mdnscpp
   }
 
   DnsSdResolve::DnsSdResolve(std::shared_ptr<DnsSdBrowser> browser,
-      size_t interface, const std::string &name, const std::string &type,
+      size_t interfaceIndex, const std::string &name, const std::string &type,
       const std::string &domain)
       : DnsSdRef(browser->getPlatform(),
-            startResolve(interface, name, type, domain, this)),
-        browser_(browser), interface_(interface), name_(name), type_(type),
-        domain_(domain)
+            startResolve(interfaceIndex, name, type, domain, this)),
+        browser_(browser), interfaceIndex_(interfaceIndex), name_(name),
+        type_(type), domain_(domain)
   {
     std::cerr << describe() << std::endl;
   }
@@ -65,7 +65,7 @@ namespace mdnscpp
   {
     std::string result = "DnsSdResolve(";
     result += "if ";
-    result += std::to_string(interface_);
+    result += std::to_string(interfaceIndex_);
     result += ", ";
     result += name_;
     result += ", ";
@@ -92,22 +92,22 @@ namespace mdnscpp
 
   const std::string &DnsSdResolve::getDomain() const { return domain_; }
 
-  size_t DnsSdResolve::getInterface() const { return interface_; }
+  size_t DnsSdResolve::getInterface() const { return interfaceIndex_; }
 
   const std::vector<TxtRecord> DnsSdResolve::getTxtRecords() const
   {
     return txtRecords_;
   }
 
-  DNSServiceRef DnsSdResolve::startResolve(size_t interface,
+  DNSServiceRef DnsSdResolve::startResolve(size_t interfaceIndex,
       const std::string &name, const std::string &type,
       const std::string &domain, void *context)
   {
     DNSServiceRef sdRef;
 
-    auto error = DNSServiceResolve(&sdRef, 0, static_cast<uint32_t>(interface),
-        name.c_str(), type.c_str(), domain.c_str(), resolveResultCallback,
-        context);
+    auto error = DNSServiceResolve(&sdRef, 0,
+        static_cast<uint32_t>(interfaceIndex), name.c_str(), type.c_str(),
+        domain.c_str(), resolveResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
       throw std::runtime_error("Failed.");
@@ -115,10 +115,10 @@ namespace mdnscpp
     return sdRef;
   }
 
-  void DnsSdResolve::onResult(DNSServiceFlags flags, uint32_t interfaceIndex,
-      DNSServiceErrorType errorCode, const char *fullname,
-      const char *hosttarget, uint16_t port, uint16_t txtLen,
-      const unsigned char *txtRecord)
+  void DnsSdResolve::onResult(DNSServiceFlags flags,
+      uint32_t interfaceIndexIndex, DNSServiceErrorType errorCode,
+      const char *fullname, const char *hosttarget, uint16_t port,
+      uint16_t txtLen, const unsigned char *txtRecord)
   {
     if (errorCode != kDNSServiceErr_NoError)
     {
@@ -133,19 +133,20 @@ namespace mdnscpp
       txtRecords_ = parseTxtRecords(txtRecord, txtLen);
 
       getaddrinfo_ = std::make_shared<DnsSdGetAddrInfo>(
-          shared_from_this(), interfaceIndex, hosttarget);
+          shared_from_this(), interfaceIndexIndex, hosttarget);
 
       close();
     }
   }
 
   void DnsSdResolve::resolveResultCallback(DNSServiceRef sdRef,
-      DNSServiceFlags flags, uint32_t interfaceIndex,
+      DNSServiceFlags flags, uint32_t interfaceIndexIndex,
       DNSServiceErrorType errorCode, const char *fullname,
       const char *hosttarget, uint16_t port, uint16_t txtLen,
       const unsigned char *txtRecord, void *context)
   {
-    reinterpret_cast<DnsSdResolve *>(context)->onResult(flags, interfaceIndex,
-        errorCode, fullname, hosttarget, port, txtLen, txtRecord);
+    reinterpret_cast<DnsSdResolve *>(context)->onResult(flags,
+        interfaceIndexIndex, errorCode, fullname, hosttarget, port, txtLen,
+        txtRecord);
   }
 } // namespace mdnscpp

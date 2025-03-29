@@ -16,20 +16,20 @@ namespace mdnscpp
     AvahiBrowser(std::shared_ptr<AvahiPlatform> platform,
         const std::string &type, const std::string &protocol,
         std::function<void(const Browser &)> onResultsChanged,
-        const std::string &domain, size_t interface);
+        const std::string &domain, size_t interfaceIndex);
 
     std::string describe() const;
 
   private:
     AvahiServiceBrowser *avahiBrowser_;
 
-    void resultCallback(AvahiIfIndex interface, AvahiProtocol protocol,
+    void resultCallback(AvahiIfIndex interfaceIndex, AvahiProtocol protocol,
         AvahiBrowserEvent event, const char *name, const char *type,
         const char *domain, AvahiLookupResultFlags flags);
 
     static void avahiServiceBrowserCallback(AvahiServiceBrowser *b,
-        AvahiIfIndex interface, AvahiProtocol protocol, AvahiBrowserEvent event,
-        const char *name, const char *type, const char *domain,
-        AvahiLookupResultFlags flags, void *userdata);
+        AvahiIfIndex interfaceIndex, AvahiProtocol protocol,
+        AvahiBrowserEvent event, const char *name, const char *type,
+        const char *domain, AvahiLookupResultFlags flags, void *userdata);
   };
 } // namespace mdnscpp

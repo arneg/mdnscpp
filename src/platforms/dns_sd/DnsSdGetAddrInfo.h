@@ -14,8 +14,8 @@ namespace mdnscpp
   class DnsSdGetAddrInfo : DnsSdRef
   {
   public:
-    DnsSdGetAddrInfo(std::shared_ptr<DnsSdResolve> resolve, size_t interface,
-        const std::string &hostname);
+    DnsSdGetAddrInfo(std::shared_ptr<DnsSdResolve> resolve,
+        size_t interfaceIndex, const std::string &hostname);
     ~DnsSdGetAddrInfo();
 
     std::string describe() const;
@@ -24,19 +24,19 @@ namespace mdnscpp
 
   private:
     const std::weak_ptr<DnsSdResolve> resolve_;
-    const size_t interface_;
+    const size_t interfaceIndex_;
     const std::string hostname_;
 
     std::unordered_map<std::string, std::shared_ptr<void>>
         resultRemovalContext_;
 
-    void onResult(DNSServiceFlags flags, uint32_t interfaceIndex,
+    void onResult(DNSServiceFlags flags, uint32_t interfaceIndexIndex,
         DNSServiceErrorType errorCode, const char *hostname,
         const struct sockaddr *address, uint32_t ttl);
     static DNSServiceRef startGetAddrInfo(
-        size_t interface, const std::string &hostname, void *context);
+        size_t interfaceIndex, const std::string &hostname, void *context);
     static void getAddrInfoResultCallback(DNSServiceRef sdRef,
-        DNSServiceFlags flags, uint32_t interfaceIndex,
+        DNSServiceFlags flags, uint32_t interfaceIndexIndex,
         DNSServiceErrorType errorCode, const char *hostname,
         const struct sockaddr *address, uint32_t ttl, void *context);
   };

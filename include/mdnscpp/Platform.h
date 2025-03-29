@@ -18,7 +18,7 @@ namespace mdnscpp
     virtual std::shared_ptr<Browser> createBrowser(const std::string &type,
         const std::string &protocol,
         Browser::ResultsChangedCallback onResultsChanged,
-        const std::string &domain = "", size_t interface = 0,
+        const std::string &domain = "", size_t interfaceIndex = 0,
         IPProtocol ipProtocol = IPProtocol::Both) = 0;
     EventLoop &getEventLoop() const;
 

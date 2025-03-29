@@ -367,7 +367,7 @@ namespace mdnscpp
     if (pipe(wakeupPipes_))
       throw std::runtime_error("Failed to create wakeup pipes.");
     wakeupWatch_ =
-        createWatch(wakeupPipes_[0], EventType::READ, [&](auto type) {
+        createWatch(wakeupPipes_[0], EventType::TYPE_READ, [&](auto type) {
           char buf[128];
           read(wakeupPipes_[0], buf, 128);
           // process async

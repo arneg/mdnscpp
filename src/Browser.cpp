@@ -27,9 +27,10 @@ namespace mdnscpp
 
   Browser::Browser(const std::string &type, const std::string &protocol,
       ResultsChangedCallback onResultsChanged, const std::string &domain,
-      size_t interface, IPProtocol ipProtocol)
+      size_t interfaceIndex, IPProtocol ipProtocol)
       : type_(type), protocol_(protocol), onResultsChanged_(onResultsChanged),
-        domain_(domain), interface_(interface), ipProtocol_(ipProtocol)
+        domain_(domain), interfaceIndex_(interfaceIndex),
+        ipProtocol_(ipProtocol)
   {
   }
 
@@ -39,7 +40,7 @@ namespace mdnscpp
 
   const std::string &Browser::getDomain() const { return domain_; }
 
-  size_t Browser::getInterface() const { return interface_; }
+  size_t Browser::getInterface() const { return interfaceIndex_; }
 
   IPProtocol Browser::getIPProtocol() const { return ipProtocol_; }
 

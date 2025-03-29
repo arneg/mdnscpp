@@ -53,7 +53,7 @@ namespace mdnscpp
 
     BrowseResult(std::vector<TxtRecord> txtRecords, std::string type,
         std::string protocol, std::string name, std::string domain,
-        std::string hostname, std::string address, size_t interface,
+        std::string hostname, std::string address, size_t interfaceIndex,
         IPProtocol ipProtocol);
 
     /**
@@ -70,7 +70,7 @@ namespace mdnscpp
     std::string hostname_;
     std::string address_;
     std::string fullname_;
-    size_t interface_;
+    size_t interfaceIndex_;
     IPProtocol ipProtocol_;
   };
 } // namespace mdnscpp

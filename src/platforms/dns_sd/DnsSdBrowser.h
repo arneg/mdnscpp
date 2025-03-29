@@ -23,7 +23,7 @@ namespace mdnscpp
     DnsSdBrowser(std::shared_ptr<DnsSdPlatform> platform,
         const std::string &type, const std::string &protocol,
         ResultsChangedCallback onResultsChanged, const std::string &domain,
-        size_t interface, IPProtocol ipProtocol);
+        size_t interfaceIndex, IPProtocol ipProtocol);
 
     ~DnsSdBrowser();
 
@@ -37,15 +37,15 @@ namespace mdnscpp
   private:
     std::unordered_map<std::string, std::shared_ptr<DnsSdResolve>> resolves_;
 
-    void browseResult(uint32_t interfaceIndex, DNSServiceErrorType errorCode,
-        DNSServiceFlags flags, const char *serviceName, const char *regtype,
-        const char *replyDomain);
+    void browseResult(uint32_t interfaceIndexIndex,
+        DNSServiceErrorType errorCode, DNSServiceFlags flags,
+        const char *serviceName, const char *regtype, const char *replyDomain);
 
     static DNSServiceRef startBrowse(const std::string &type,
         const std::string &protocol, const std::string &domain,
-        size_t interface, void *context);
+        size_t interfaceIndex, void *context);
     static void browseResultCallback(DNSServiceRef sdRef, DNSServiceFlags flags,
-        uint32_t interfaceIndex, DNSServiceErrorType errorCode,
+        uint32_t interfaceIndexIndex, DNSServiceErrorType errorCode,
         const char *serviceName, const char *regtype, const char *replyDomain,
         void *context);
   };

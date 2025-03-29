@@ -16,7 +16,7 @@ namespace mdnscpp
                        public std::enable_shared_from_this<DnsSdResolve>
   {
   public:
-    DnsSdResolve(std::shared_ptr<DnsSdBrowser> browser, size_t interface,
+    DnsSdResolve(std::shared_ptr<DnsSdBrowser> browser, size_t interfaceIndex,
         const std::string &name, const std::string &type,
         const std::string &domain);
     ~DnsSdResolve();
@@ -33,7 +33,7 @@ namespace mdnscpp
 
   private:
     const std::weak_ptr<DnsSdBrowser> browser_;
-    const size_t interface_;
+    const size_t interfaceIndex_;
     const std::string name_;
     const std::string type_;
     const std::string domain_;
@@ -41,14 +41,15 @@ namespace mdnscpp
 
     std::shared_ptr<DnsSdGetAddrInfo> getaddrinfo_;
 
-    void onResult(DNSServiceFlags flags, uint32_t interfaceIndex,
+    void onResult(DNSServiceFlags flags, uint32_t interfaceIndexIndex,
         DNSServiceErrorType errorCode, const char *fullname,
         const char *hosttarget, uint16_t port, uint16_t txtLen,
         const unsigned char *txtRecord);
-    static DNSServiceRef startResolve(size_t interface, const std::string &name,
-        const std::string &type, const std::string &domain, void *context);
+    static DNSServiceRef startResolve(size_t interfaceIndex,
+        const std::string &name, const std::string &type,
+        const std::string &domain, void *context);
     static void resolveResultCallback(DNSServiceRef sdRef,
-        DNSServiceFlags flags, uint32_t interfaceIndex,
+        DNSServiceFlags flags, uint32_t interfaceIndexIndex,
         DNSServiceErrorType errorCode, const char *fullname,
         const char *hosttarget, uint16_t port, uint16_t txtLen,
         const unsigned char *txtRecord, void *context);

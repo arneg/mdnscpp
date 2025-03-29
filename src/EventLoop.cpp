@@ -56,11 +56,11 @@ namespace mdnscpp
 
   EventLoop::EventType::EventType(uint8_t flags) : flags_(flags) {}
 
-  const EventLoop::EventType EventLoop::EventType::READ{EVENT_TYPE_READ};
-  const EventLoop::EventType EventLoop::EventType::WRITE{EVENT_TYPE_WRITE};
-  const EventLoop::EventType EventLoop::EventType::DISCONNECT{
+  const EventLoop::EventType EventLoop::EventType::TYPE_READ{EVENT_TYPE_READ};
+  const EventLoop::EventType EventLoop::EventType::TYPE_WRITE{EVENT_TYPE_WRITE};
+  const EventLoop::EventType EventLoop::EventType::TYPE_DISCONNECT{
       EVENT_TYPE_DISCONNECT};
-  const EventLoop::EventType EventLoop::EventType::ERROR{EVENT_TYPE_ERROR};
+  const EventLoop::EventType EventLoop::EventType::TYPE_ERROR{EVENT_TYPE_ERROR};
 
   EventLoop::Watch::Watch(int fd, EventLoop::Watch::Callback callback)
       : fd_(fd), callback_(callback)

@@ -17,7 +17,7 @@ namespace mdnscpp
     std::shared_ptr<Browser> createBrowser(const std::string &type,
         const std::string &protocol,
         std::function<void(const Browser &)> onResultsChanged,
-        const std::string &domain = "", size_t interface = 0) override;
+        const std::string &domain = "", size_t interfaceIndex = 0) override;
 
     AvahiClient *getAvahiClient() const;
 

@@ -1,21 +1,14 @@
 #pragma once
 
-#include <unordered_map>
-#include <utility>
-
-#include <dns_sd.h>
-
 #include <mdnscpp/Platform.h>
-
-#include "DnsSdRef.h"
 
 namespace mdnscpp
 {
-  class DnsSdPlatform : public Platform,
-                        public std::enable_shared_from_this<DnsSdPlatform>
+  class Win32Platform : public Platform,
+                        public std::enable_shared_from_this<Win32Platform>
   {
   public:
-    DnsSdPlatform(EventLoop &loop);
+    Win32Platform(EventLoop &loop);
 
     std::shared_ptr<Browser> createBrowser(const std::string &type,
         const std::string &protocol,

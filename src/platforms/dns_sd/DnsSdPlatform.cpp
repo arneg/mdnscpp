@@ -13,9 +13,9 @@ namespace mdnscpp
   std::shared_ptr<Browser> DnsSdPlatform::createBrowser(const std::string &type,
       const std::string &protocol,
       Browser::ResultsChangedCallback onResultsChanged,
-      const std::string &domain, size_t interface, IPProtocol ipProtocol)
+      const std::string &domain, size_t interfaceIndex, IPProtocol ipProtocol)
   {
     return std::make_shared<DnsSdBrowser>(shared_from_this(), type, protocol,
-        onResultsChanged, domain, interface, ipProtocol);
+        onResultsChanged, domain, interfaceIndex, ipProtocol);
   }
 } // namespace mdnscpp
