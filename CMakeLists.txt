@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.8)
 
 project(libmdnscpp LANGUAGES CXX)
 
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include(FindOrFetchLibuv)
+
 add_library(libmdnscpp)
 
 target_sources(libmdnscpp PRIVATE
@@ -11,6 +15,7 @@ target_sources(libmdnscpp PRIVATE
   include/mdnscpp/EventLoop.h
   include/mdnscpp/CallQueue.h
   include/mdnscpp/utils.h
+  include/mdnscpp/DefaultLoop.h
   src/BrowseResult.cpp
   src/Browser.cpp
   src/Platform.cpp
@@ -26,12 +31,23 @@ target_sources(libmdnscpp PRIVATE
 find_library(LIB_DNS_SD NAMES dns_sd)
 find_library(LIB_AVAHI NAMES avahi-client)
 
-if(WIN32)
-else()
+
+if(NOT WIN32)
   target_sources(libmdnscpp PRIVATE
     include/mdnscpp/PollLoop.h
     src/PollLoop.cpp
   )
+  target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_LOOP_POLL)
+endif()
+
+if(libuv_FOUND)
+  message("using libuv")
+  target_sources(libmdnscpp PRIVATE
+    include/mdnscpp/LibuvLoop.h
+    src/LibuvLoop.cpp
+  )
+  target_link_libraries(libmdnscpp PUBLIC uv)
+  target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_LOOP_LIBUV)
 endif()
 
 if(LIB_AVAHI)
