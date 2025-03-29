@@ -3,6 +3,7 @@
 #include <limits>
 #include <poll.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include <iostream>
 
@@ -107,6 +108,21 @@ namespace mdnscpp
 
         watch->getCallback()(watch->getReturnedEvents());
       }
+
+      if (processAsync_)
+      {
+        processAsync_ = false;
+
+        for (auto &async : pollAsyncs_)
+        {
+          async->process();
+        }
+
+        pollAsyncs_.erase(
+            std::remove_if(pollAsyncs_.begin(), pollAsyncs_.end(),
+                [](const auto &async) { return async->shouldDeallocate(); }),
+            pollAsyncs_.end());
+      }
     }
 
     return count || pollfds_.size();
@@ -135,9 +151,14 @@ namespace mdnscpp
     return std::make_shared<PollTimeout>(*this, state, callback);
   }
 
-  std::shared_ptr<EventLoop::CallQueue> PollLoop::createCallQueue()
+  std::shared_ptr<EventLoop::Async> PollLoop::createAsync(
+      EventLoop::Async::Callback callback)
   {
-    return nullptr;
+    makeWakeupPipes();
+    auto internalAsync = std::make_unique<PollAsync>(*this, callback);
+    auto result = std::make_shared<Async>(*internalAsync);
+    pollAsyncs_.emplace_back(std::move(internalAsync));
+    return result;
   }
 
   constexpr bool PollLoop::CompareTimeval::operator()(
@@ -282,7 +303,7 @@ namespace mdnscpp
       polledWatches_.push_back(watch);
     }
 
-    std::cerr << "Generated pollfds " << pollfds_.size() << std::endl;
+    //std::cerr << "Generated pollfds " << pollfds_.size() << std::endl;
     pollfdsInvalid_ = false;
   }
 
@@ -336,4 +357,49 @@ namespace mdnscpp
   }
 
   void PollLoop::updateWatch(PollWatch *watch) { pollfdsInvalid_ = true; }
+
+  PollLoop::~PollLoop() { removeWakeupPipes(); }
+
+  void PollLoop::makeWakeupPipes()
+  {
+    if (wakeupPipes_[0])
+      return;
+    if (pipe(wakeupPipes_))
+      throw std::runtime_error("Failed to create wakeup pipes.");
+    wakeupWatch_ =
+        createWatch(wakeupPipes_[0], EventType::READ, [&](auto type) {
+          char buf[128];
+          read(wakeupPipes_[0], buf, 128);
+          // process async
+          processAsync_ = true;
+        });
+  }
+
+  void PollLoop::removeWakeupPipes()
+  {
+    wakeupWatch_ = nullptr;
+    if (wakeupPipes_[0])
+    {
+      close(wakeupPipes_[0]);
+      close(wakeupPipes_[1]);
+    }
+  }
+
+  PollLoop::PollAsync::PollAsync(PollLoop &loop, Callback callback)
+      : loop_(loop), InternalAsync(callback)
+  {
+  }
+
+  bool PollLoop::PollAsync::trigger(bool deallocate)
+  {
+    if (InternalAsync::trigger(deallocate))
+    {
+      write(loop_.wakeupPipes_[1], "\0", 1);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 } // namespace mdnscpp

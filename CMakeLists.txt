@@ -10,12 +10,14 @@ target_sources(libmdnscpp PRIVATE
   include/mdnscpp/Platform.h
   include/mdnscpp/EventLoop.h
   include/mdnscpp/PollLoop.h
+  include/mdnscpp/CallQueue.h
   include/mdnscpp/utils.h
   src/BrowseResult.cpp
   src/Browser.cpp
   src/Platform.cpp
   src/EventLoop.cpp
   src/PollLoop.cpp
+  src/CallQueue.cpp
   src/sockAddrToString.h
   src/sockAddrToString.cpp
   src/sockAddrToIPProtocol.h

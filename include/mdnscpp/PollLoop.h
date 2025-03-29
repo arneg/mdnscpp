@@ -16,11 +16,12 @@ namespace mdnscpp
   public:
     bool runOnce();
     void run();
+    ~PollLoop();
     std::shared_ptr<Watch> createWatch(
         int fd, EventType events, Watch::Callback callback) override;
     std::shared_ptr<Timeout> createTimeout(
         TimeoutState state, Timeout::Callback callback) override;
-    std::shared_ptr<CallQueue> createCallQueue() override;
+    std::shared_ptr<Async> createAsync(Async::Callback) override;
 
   private:
     struct CompareTimeval
@@ -58,12 +59,24 @@ namespace mdnscpp
       void uninstall();
     };
 
+    class PollAsync : public InternalAsync
+    {
+    public:
+      PollAsync(PollLoop &loop, Callback callback);
+      bool trigger(bool deallocate) override;
+
+    private:
+      PollLoop &loop_;
+    };
+
     static int16_t toPollEvent(EventType events);
     static EventType fromPollEvent(int16_t pollevents);
 
     size_t runTimeoutsUntil(const struct timeval &time);
     void updatePollFds();
     int getSmallestTimeout();
+    void makeWakeupPipes();
+    void removeWakeupPipes();
 
     void addTimeout(const struct timeval &t, PollTimeout *timeout);
     void removeTimeout(const struct timeval &t, PollTimeout *timeout);
@@ -76,6 +89,10 @@ namespace mdnscpp
     std::unordered_set<PollWatch *> watches_;
     std::vector<struct pollfd> pollfds_;
     std::vector<PollWatch *> polledWatches_;
+    std::vector<std::unique_ptr<PollAsync>> pollAsyncs_;
+    std::shared_ptr<Watch> wakeupWatch_ = nullptr;
+    int wakeupPipes_[2] = {0, 0};
+    bool processAsync_ = false;
     bool pollfdsInvalid_ = true;
   };
 } // namespace mdnscpp

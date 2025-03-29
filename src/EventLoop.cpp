@@ -106,19 +106,59 @@ namespace mdnscpp
     callback_(*this);
   }
 
-  void EventLoop::CallQueue::executeCallbacks()
+  EventLoop::InternalAsync::InternalAsync(
+      EventLoop::InternalAsync::Callback callback)
+      : callback_(callback)
   {
-    auto cbs = std::move(callbacks_);
-    for (auto cb : cbs)
+  }
+
+  EventLoop::Async::Async(EventLoop::InternalAsync &internalAsync)
+      : internalAsync_(internalAsync)
+  {
+  }
+
+  bool EventLoop::InternalAsync::shouldDeallocate()
+  {
+    return state_.load() == State::DEALLOCATE;
+  }
+
+  bool EventLoop::InternalAsync::trigger(bool deallocate)
+  {
+    if (deallocate)
     {
-      try
+      state_ = State::DEALLOCATE;
+      return true;
+    }
+    else
+    {
+      auto currentState = state_.load();
+
+      if (currentState == State::INACTIVE)
       {
-        cb();
+        return state_.compare_exchange_strong(currentState, State::ACTIVE);
       }
-      catch (std::exception &err)
+      else
       {
-        // TODO: report error
+        return false;
       }
     }
   }
+
+  void EventLoop::InternalAsync::process()
+  {
+    auto currentState = state_.load();
+    if (currentState == State::ACTIVE)
+    {
+      // FIXME: could be weaker
+      if (state_.compare_exchange_strong(currentState, State::INACTIVE))
+      {
+        callback_();
+      }
+    }
+  }
+
+  EventLoop::Async::~Async() { internalAsync_.trigger(true); }
+
+  void EventLoop::Async::trigger() { internalAsync_.trigger(false); }
+
 } // namespace mdnscpp

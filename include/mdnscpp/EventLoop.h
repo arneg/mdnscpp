@@ -103,28 +103,54 @@ namespace mdnscpp
       TimeoutState state_{TimeoutDisabled{}};
     };
 
-    class CallQueue
+    class InternalAsync
     {
     public:
-      using Callback = std::function<void(void)>;
-
-      CallQueue();
-      virtual ~CallQueue() = default;
-
-      void schedule(Callback callback);
+      using Callback = std::function<void()>;
+      virtual bool trigger(bool deallocate);
+      InternalAsync(Callback callback);
+      void process();
+      bool shouldDeallocate();
 
     private:
-      std::mutex mutex_;
-      std::vector<Callback> callbacks_;
+      enum class State
+      {
+        /**
+         * This async has not been trigger()ed.
+         */
+        INACTIVE,
+        /**
+         * This async has been trigger()ed and is waiting
+         * to execute.
+         */
+        ACTIVE,
+        /**
+         * This async has been trigger()ed to be deallocated.
+         */
+        DEALLOCATE,
+      };
+      const Callback callback_;
+      std::atomic<State> state_ = State::INACTIVE;
+    };
 
-      void executeCallbacks();
+    class Async
+    {
+    public:
+      using Callback = InternalAsync::Callback;
+
+      Async(InternalAsync &internalAsync);
+      ~Async();
+      void trigger();
+
+    private:
+      InternalAsync &internalAsync_;
     };
 
     virtual std::shared_ptr<Watch> createWatch(
         int fd, EventType events, Watch::Callback callback) = 0;
     virtual std::shared_ptr<Timeout> createTimeout(
         TimeoutState state, Timeout::Callback callback) = 0;
-    virtual std::shared_ptr<CallQueue> createCallQueue() = 0;
+    virtual std::shared_ptr<Async> createAsync(Async::Callback callback) = 0;
 
   private:
   };
