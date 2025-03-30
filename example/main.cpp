@@ -1,6 +1,6 @@
 #include <mdnscpp/CallQueue.h>
+#include <mdnscpp/DefaultLoop.h>
 #include <mdnscpp/Platform.h>
-#include <mdnscpp/PollLoop.h>
 #include <mdnscpp/utils.h>
 
 #include <chrono>
@@ -10,7 +10,7 @@
 
 int main(int argc, const char **argv)
 {
-  mdnscpp::PollLoop loop;
+  mdnscpp::DefaultLoop loop;
 
   auto platform = mdnscpp::createPlatform(loop);
 
@@ -34,7 +34,7 @@ int main(int argc, const char **argv)
       callQueue->schedule([&]() { p.set_value(); });
       std::cerr << "waiting for callback" << std::endl;
       p.get_future().wait();
-      std::this_thread::sleep_for(1s);
+      std::this_thread::sleep_for(50s);
     }
   }};
 

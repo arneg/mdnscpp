@@ -5,7 +5,6 @@
 
 namespace mdnscpp
 {
-
   class ResultRemovalContext
   {
     std::shared_ptr<Browser> browser_;

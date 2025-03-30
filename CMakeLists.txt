@@ -16,11 +16,13 @@ target_sources(libmdnscpp PRIVATE
   include/mdnscpp/CallQueue.h
   include/mdnscpp/utils.h
   include/mdnscpp/DefaultLoop.h
+  include/mdnscpp/IPAddress.h
   src/BrowseResult.cpp
   src/Browser.cpp
   src/Platform.cpp
   src/EventLoop.cpp
   src/CallQueue.cpp
+  src/IPAddress.cpp
   src/sockAddrToString.h
   src/sockAddrToString.cpp
   src/sockAddrToIPProtocol.h
@@ -87,7 +89,16 @@ elseif(WIN32)
     src/platforms/win32/Win32Browser.h
     src/platforms/win32/Win32Platform.cpp
     src/platforms/win32/Win32Platform.h
+    src/platforms/win32/toWideString.cpp
+    src/platforms/win32/toWideString.h
+    src/platforms/win32/fromWideString.cpp
+    src/platforms/win32/fromWideString.h
+    src/platforms/win32/dnsTypeToString.cpp
+    src/platforms/win32/dnsTypeToString.h
+    src/platforms/win32/Win32Resolve.cpp
+    src/platforms/win32/Win32Resolve.h
   )
+  target_link_libraries(libmdnscpp PUBLIC dnsapi.dll)
   target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_PLATFORM_WIN32)
 else()
   message(FATAL_ERROR "No platform support found.")
