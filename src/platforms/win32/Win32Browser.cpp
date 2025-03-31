@@ -17,8 +17,6 @@ namespace mdnscpp
   {
     Win32BrowseResult result;
 
-    std::cerr << "query completion routing. records: " << std::endl;
-
     for (DNS_RECORD *entry = records; entry; entry = entry->pNext)
     {
       std::cerr << dnsTypeToString(entry->wType) << " ttl: " << entry->dwTtl
@@ -29,6 +27,7 @@ namespace mdnscpp
         // FIXME: why does this select the const char * version??
         result.queryName =
             fromWideString((const wchar_t *)entry->Data.PTR.pNameHost);
+        result.ttl = entry->dwTtl;
         std::cerr << "hostname: '" << result.queryName << "'" << std::endl;
         break;
       }
@@ -61,7 +60,6 @@ namespace mdnscpp
       }
       }
     }
-    std::cerr << "done." << std::endl;
 
     return result;
   }
@@ -69,7 +67,6 @@ namespace mdnscpp
   void Win32Browser::DnsQueryCompletionRoutine(
       void *pQueryContext, DNS_QUERY_RESULT *queryResults)
   {
-
     DNS_RECORD *records = queryResults->pQueryRecords;
 
     Win32Browser *browser = reinterpret_cast<Win32Browser *>(pQueryContext);
@@ -77,7 +74,7 @@ namespace mdnscpp
 
     DnsRecordListFree(records, DnsFreeRecordList);
 
-    browser->scheduleResolve(result.queryName);
+    browser->onBrowseResult(std::move(result));
   }
 
   static const std::string defaultDomain = "local";
@@ -88,15 +85,15 @@ namespace mdnscpp
       size_t interfaceIndex, IPProtocol ipProtocol)
       : Browser(type, protocol, onResultsChanged,
             domain.size() ? domain : defaultDomain, interfaceIndex, ipProtocol),
-        queue_(platform->getEventLoop())
+        queue_(platform->getEventLoop()), platform_(platform)
   {
     DNS_SERVICE_BROWSE_REQUEST request;
 
     auto queryName =
         toWideString(getType() + "." + getProtocol() + "." + getDomain());
 
-    request.Version = 2; /*DNS_QUERY_REQUEST_VERSION2;*/
-    request.InterfaceIndex = static_cast<unsigned long>(interfaceIndex);
+    request.Version = 2;         /*DNS_QUERY_REQUEST_VERSION2;*/
+    request.InterfaceIndex = 13; //static_cast<unsigned long>(interfaceIndex);
     request.QueryName = queryName.c_str();
     request.pQueryContext = this;
     request.pBrowseCallbackV2 = DnsQueryCompletionRoutine;
@@ -134,17 +131,30 @@ namespace mdnscpp
     return result;
   }
 
-  void Win32Browser::scheduleResolve(std::string queryName)
+  void Win32Browser::onBrowseResult(Win32BrowseResult result)
   {
-    queue_.schedule([queryName, this]() {
+    if (!result.queryName.size())
+      return;
+
+    queue_.schedule([result = std::move(result), this]() {
       auto shared_this =
           std::static_pointer_cast<Win32Browser>(getSharedFromThis());
-      auto it = resolves_.find(queryName);
+      auto it = resolves_.find(result.queryName);
 
-      if (it == resolves_.end())
+      if (result.ttl)
       {
-        resolves_.insert({queryName,
-            std::make_shared<Win32Resolve>(shared_this, queryName)});
+        if (it == resolves_.end())
+        {
+          resolves_.insert({result.queryName,
+              std::make_shared<Win32Resolve>(shared_this, result.queryName)});
+        }
+      }
+      else
+      {
+        if (it != resolves_.end())
+        {
+          resolves_.erase(it);
+        }
       }
     });
   }
@@ -153,4 +163,10 @@ namespace mdnscpp
   {
     return shared_from_this();
   }
+
+  std::shared_ptr<Win32Platform> Win32Browser::getPlatform() const
+  {
+    return platform_;
+  }
+
 } // namespace mdnscpp

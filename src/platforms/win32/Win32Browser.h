@@ -24,6 +24,9 @@ namespace mdnscpp
   struct Win32BrowseResult
   {
     std::string queryName;
+    // This tll refers to the service itself, not
+    // the TXT, A, SRV, etc.
+    uint32_t ttl;
     std::vector<IPAddress> addresses;
     std::string hostname;
     uint16_t port;
@@ -41,6 +44,7 @@ namespace mdnscpp
     ~Win32Browser();
 
     std::string describe() const;
+    std::shared_ptr<Win32Platform> getPlatform() const;
 
   protected:
     std::shared_ptr<Browser> getSharedFromThis() override;
@@ -49,10 +53,11 @@ namespace mdnscpp
     static void DnsQueryCompletionRoutine(
         void *pQueryContext, DNS_QUERY_RESULT *queryResults);
 
-    void scheduleResolve(std::string queryName);
+    void onBrowseResult(Win32BrowseResult result);
 
     CallQueue queue_;
     DNS_SERVICE_CANCEL cancel_;
     std::unordered_map<std::string, std::shared_ptr<Win32Resolve>> resolves_;
+    std::shared_ptr<Win32Platform> platform_;
   };
 } // namespace mdnscpp
