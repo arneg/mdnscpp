@@ -87,13 +87,14 @@ namespace mdnscpp
             domain.size() ? domain : defaultDomain, interfaceIndex, ipProtocol),
         queue_(platform->getEventLoop()), platform_(platform)
   {
+    std::cerr << describe() << std::endl;
     DNS_SERVICE_BROWSE_REQUEST request;
 
     auto queryName =
         toWideString(getType() + "." + getProtocol() + "." + getDomain());
 
-    request.Version = 2;         /*DNS_QUERY_REQUEST_VERSION2;*/
-    request.InterfaceIndex = 13; //static_cast<unsigned long>(interfaceIndex);
+    request.Version = 2; /*DNS_QUERY_REQUEST_VERSION2;*/
+    request.InterfaceIndex = static_cast<unsigned long>(interfaceIndex);
     request.QueryName = queryName.c_str();
     request.pQueryContext = this;
     request.pBrowseCallbackV2 = DnsQueryCompletionRoutine;

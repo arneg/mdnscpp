@@ -24,8 +24,8 @@ namespace mdnscpp
     std::wstring wideQueryName = toWideString(queryName);
 
     request.Version = DNS_QUERY_REQUEST_VERSION1;
-    request.InterfaceIndex = 13;
-    //static_cast<unsigned long>(browser->getInterface());
+    request.InterfaceIndex =
+        static_cast<unsigned long>(browser->getInterface());
     request.QueryName = wideQueryName.data();
     request.pQueryContext = this;
     request.pResolveCompletionCallback = DnsServiceResolveComplete;
@@ -36,13 +36,13 @@ namespace mdnscpp
 
   void Win32Resolve::onResolveResult(PDNS_SERVICE_INSTANCE pInstance)
   {
-    IPAddress ipv4{pInstance->ip4Address, pInstance->wPort};
-    IPAddress ipv6{pInstance->ip6Address, pInstance->wPort};
+    std::vector<IPAddress> ips;
 
-    std::cerr << "found " << ipv4.getDecimalString() << " port"
-              << ipv4.getPort() << std::endl;
-    std::cerr << "found " << ipv6.getDecimalString() << " port"
-              << ipv6.getPort() << std::endl;
+    if (pInstance->ip4Address)
+      ips.emplace_back(pInstance->ip4Address, pInstance->wPort);
+
+    if (pInstance->ip6Address)
+      ips.emplace_back(pInstance->ip6Address, pInstance->wPort);
 
     std::vector<TxtRecord> txtRecords;
     std::string hostname = fromWideString(pInstance->pszHostName);
@@ -55,17 +55,26 @@ namespace mdnscpp
       TxtRecord record;
 
       record.key = fromWideString(pInstance->keys[i]);
-      record.value = fromWideString(pInstance->values[i]);
+
+      std::string tmp = fromWideString(pInstance->values[i]);
+
+      if (tmp.size())
+        record.value = std::move(tmp);
+
+      txtRecords.push_back(std::move(record));
     }
 
-    queue_.schedule([ipv4, ipv6, txtRecords, hostname, port, interfaceIndex,
+    queue_.schedule([ips, txtRecords, hostname, port, interfaceIndex,
                         instanceName, this]() {
-      auto result = std::make_shared<BrowseResult>(txtRecords,
-          browser_->getType(), browser_->getProtocol(), instanceName,
-          browser_->getDomain(), hostname, ipv4.getDecimalString(),
-          interfaceIndex, IPProtocol::IPv4);
+      for (const auto &ip : ips)
+      {
+        auto result =
+            std::make_shared<BrowseResult>(txtRecords, browser_->getType(),
+                browser_->getProtocol(), instanceName, browser_->getDomain(),
+                hostname, ip.getDecimalString(), interfaceIndex, ip.getType());
 
-      removals_.push_back(browser_->addResult(std::move(result)));
+        removals_.push_back(browser_->addResult(std::move(result)));
+      }
     });
   }
 
