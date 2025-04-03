@@ -79,6 +79,24 @@ namespace mdnscpp
                                b.ipProtocol_, b.address_);
   }
 
+  bool BrowseResult::operator==(const BrowseResult &other) const
+  {
+    return getName() == other.getName() &&
+           getHostname() == other.getHostname() &&
+           getType() == other.getType() &&
+           getProtocol() == other.getProtocol() &&
+           getDomain() == other.getDomain() &&
+           getAddress() == other.getAddress() &&
+           getInterface() == other.getInterface() &&
+           getIPProtocol() == other.getIPProtocol() &&
+           getTxtRecords() == other.getTxtRecords();
+  }
+
+  bool BrowseResult::operator!=(const BrowseResult &other) const
+  {
+    return !(*this == other);
+  }
+
   BrowseResult::BrowseResult(std::vector<TxtRecord> txtRecords,
       std::string type, std::string protocol, std::string name,
       std::string domain, std::string hostname, std::string address,

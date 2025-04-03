@@ -156,6 +156,8 @@ namespace mdnscpp
         TimeoutState state, Timeout::Callback callback) = 0;
     virtual std::shared_ptr<Async> createAsync(Async::Callback callback) = 0;
 
+    virtual uint64_t now() const = 0;
+
   private:
   };
 } // namespace mdnscpp

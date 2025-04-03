@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+static constexpr uint64_t pendingRetryInterval = 5 * 1000;
+
 namespace mdnscpp
 {
 
@@ -18,31 +20,110 @@ namespace mdnscpp
   {
     std::cerr << "Win32Resolve(" << browser->describe() << ", " << queryName
               << ")" << std::endl;
+  }
+
+  void Win32Resolve::resetUpdateTime()
+  {
+    updateTime_ = browser_->getPlatform()->getEventLoop().now();
+  }
+
+  uint64_t Win32Resolve::age() const
+  {
+    return browser_->getPlatform()->getEventLoop().now() - updateTime_;
+  }
+
+  bool Win32Resolve::isFresh() const
+  {
+    if (state_ != State::DONE)
+    {
+      return false;
+    }
+
+    auto ageInSeconds = age() / 1000;
+
+    return ageInSeconds < ttl_ / 2;
+  }
+
+  void Win32Resolve::refresh(uint32_t ttl)
+  {
+    if (state_ == State::PENDING)
+    {
+      if (age() < pendingRetryInterval)
+      {
+        std::cerr << "Resolve is still pending for less than "
+                  << pendingRetryInterval << ". Retry later." << std::endl;
+        return;
+      }
+
+      cancel();
+    }
+
+    ttl_ = (std::min)(ttl_, ttl);
+
+    if (isFresh())
+    {
+      std::cerr << "Result is still fresh." << std::endl;
+      return;
+    }
+
+    ttl_ = ttl;
+    state_ = State::PENDING;
+    resetUpdateTime();
+
+    std::cerr << "Calling DnsServiceResolve." << std::endl;
 
     DNS_SERVICE_RESOLVE_REQUEST request;
 
-    std::wstring wideQueryName = toWideString(queryName);
+    std::wstring wideQueryName = toWideString(queryName_);
 
     request.Version = DNS_QUERY_REQUEST_VERSION1;
     request.InterfaceIndex =
-        static_cast<unsigned long>(browser->getInterface());
+        static_cast<unsigned long>(browser_->getInterface());
     request.QueryName = wideQueryName.data();
     request.pQueryContext = this;
     request.pResolveCompletionCallback = DnsServiceResolveComplete;
 
-    std::cerr << "Calling DnsServiceResolve." << std::endl;
     auto status = DnsServiceResolve(&request, &cancel_);
+
+    if (status != DNS_REQUEST_PENDING)
+    {
+      state_ = State::FAILED;
+    }
+  }
+
+  void Win32Resolve::updateResult(
+      std::shared_ptr<BrowseResult> &slot, std::shared_ptr<BrowseResult> result)
+  {
+    if (slot == result)
+      return;
+    if (slot && result && *slot == *result)
+    {
+      std::cerr << "Result unchanged. Skipping update." << std::endl;
+      return;
+    }
+
+    if (slot)
+    {
+      browser_->removeResult(slot);
+    }
+
+    std::swap(slot, result);
+
+    if (slot)
+    {
+      browser_->insertResult(slot);
+    }
   }
 
   void Win32Resolve::onResolveResult(PDNS_SERVICE_INSTANCE pInstance)
   {
-    std::vector<IPAddress> ips;
+    std::optional<IPAddress> ipv4, ipv6;
 
     if (pInstance->ip4Address)
-      ips.emplace_back(pInstance->ip4Address, pInstance->wPort);
+      ipv4.emplace(pInstance->ip4Address, pInstance->wPort);
 
     if (pInstance->ip6Address)
-      ips.emplace_back(pInstance->ip6Address, pInstance->wPort);
+      ipv4.emplace(pInstance->ip6Address, pInstance->wPort);
 
     std::vector<TxtRecord> txtRecords;
     std::string hostname = fromWideString(pInstance->pszHostName);
@@ -64,17 +145,26 @@ namespace mdnscpp
       txtRecords.push_back(std::move(record));
     }
 
-    queue_.schedule([ips, txtRecords, hostname, port, interfaceIndex,
+    queue_.schedule([ipv4, ipv6, txtRecords, hostname, port, interfaceIndex,
                         instanceName, this]() {
-      for (const auto &ip : ips)
+      if (state_ != State::PENDING)
       {
-        auto result =
-            std::make_shared<BrowseResult>(txtRecords, browser_->getType(),
-                browser_->getProtocol(), instanceName, browser_->getDomain(),
-                hostname, ip.getDecimalString(), interfaceIndex, ip.getType());
-
-        removals_.push_back(browser_->addResult(std::move(result)));
+        std::cerr << "Got resolve result in unexpected state. ignoring."
+                  << std::endl;
+        return;
       }
+
+      resetUpdateTime();
+      state_ = State::DONE;
+
+      auto makeResult = [&](const IPAddress &ip) {
+        return std::make_shared<BrowseResult>(txtRecords, browser_->getType(),
+            browser_->getProtocol(), instanceName, browser_->getDomain(),
+            hostname, ip.getDecimalString(), interfaceIndex, ip.getType());
+      };
+
+      updateResult(ip4Result_, ipv4 ? makeResult(*ipv4) : nullptr);
+      updateResult(ip6Result_, ipv6 ? makeResult(*ipv6) : nullptr);
     });
   }
 
@@ -89,10 +179,23 @@ namespace mdnscpp
     }
   }
 
+  void Win32Resolve::cancel()
+  {
+    if (state_ == State::PENDING)
+    {
+      DnsServiceResolveCancel(&cancel_);
+      state_ = State::INIT;
+    }
+  }
+
   Win32Resolve::~Win32Resolve()
   {
     std::cerr << "~Win32Resolve(" << browser_->describe() << ", " << queryName_
               << ")" << std::endl;
-    DnsServiceResolveCancel(&cancel_);
+
+    if (ip4Result_)
+      browser_->removeResult(ip4Result_);
+    if (ip6Result_)
+      browser_->removeResult(ip6Result_);
   }
 } // namespace mdnscpp

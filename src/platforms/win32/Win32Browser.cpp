@@ -142,13 +142,17 @@ namespace mdnscpp
           std::static_pointer_cast<Win32Browser>(getSharedFromThis());
       auto it = resolves_.find(result.queryName);
 
-      if (result.ttl)
+      if (true || result.ttl)
       {
         if (it == resolves_.end())
         {
-          resolves_.insert({result.queryName,
-              std::make_shared<Win32Resolve>(shared_this, result.queryName)});
+          it = resolves_
+                   .insert(
+                       {result.queryName, std::make_shared<Win32Resolve>(
+                                              shared_this, result.queryName)})
+                   .first;
         }
+        it->second->refresh(result.ttl);
       }
       else
       {

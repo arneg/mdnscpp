@@ -23,6 +23,8 @@ namespace mdnscpp
         TimeoutState state, Timeout::Callback callback) override;
     std::shared_ptr<Async> createAsync(Async::Callback) override;
 
+    uint64_t now() const override;
+
   private:
     class LibuvWatch : public Watch
     {

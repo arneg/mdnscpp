@@ -51,6 +51,13 @@ namespace mdnscpp
 
   std::shared_ptr<void> Browser::addResult(std::shared_ptr<BrowseResult> result)
   {
+    insertResult(result);
+    return std::make_shared<ResultRemovalContext>(
+        getSharedFromThis(), std::move(result));
+  }
+
+  void Browser::insertResult(std::shared_ptr<BrowseResult> result)
+  {
     if (results_.find(result) != results_.end())
     {
       throw std::logic_error("Result already found. Unexpected.");
@@ -58,8 +65,6 @@ namespace mdnscpp
 
     results_.insert(result);
     notifyResultsChanged();
-    return std::make_shared<ResultRemovalContext>(
-        getSharedFromThis(), std::move(result));
   }
 
   void Browser::removeResult(std::shared_ptr<BrowseResult> result)

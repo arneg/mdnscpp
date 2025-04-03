@@ -24,6 +24,8 @@ namespace mdnscpp
     return nullptr;
   }
 
+  uint64_t LibuvLoop::now() const { return uv_now(uv_loop_); }
+
   std::shared_ptr<EventLoop::Async> LibuvLoop::createAsync(
       EventLoop::Async::Callback callback)
   {

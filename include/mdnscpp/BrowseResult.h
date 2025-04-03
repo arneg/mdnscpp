@@ -51,6 +51,9 @@ namespace mdnscpp
 
     IPProtocol getIPProtocol() const;
 
+    bool operator==(const BrowseResult &other) const;
+    bool operator!=(const BrowseResult &other) const;
+
     BrowseResult(std::vector<TxtRecord> txtRecords, std::string type,
         std::string protocol, std::string name, std::string domain,
         std::string hostname, std::string address, size_t interfaceIndex,

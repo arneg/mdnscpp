@@ -18,6 +18,7 @@ target_sources(libmdnscpp PRIVATE
   include/mdnscpp/DefaultLoop.h
   include/mdnscpp/IPAddress.h
   src/BrowseResult.cpp
+  src/TxtRecord.cpp
   src/Browser.cpp
   src/Platform.cpp
   src/EventLoop.cpp

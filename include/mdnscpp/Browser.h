@@ -30,6 +30,8 @@ namespace mdnscpp
     const std::unordered_set<std::shared_ptr<BrowseResult>> getResults() const;
 
     std::shared_ptr<void> addResult(std::shared_ptr<BrowseResult> result);
+
+    void insertResult(std::shared_ptr<BrowseResult> result);
     void removeResult(std::shared_ptr<BrowseResult> result);
 
   protected:
