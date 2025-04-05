@@ -2,6 +2,8 @@
 
 #include "Win32Platform.h"
 
+#include "../../throw.h"
+
 #include <cwchar>
 #include <iostream>
 #include <stdexcept>
@@ -104,7 +106,7 @@ namespace mdnscpp
     if (status != DNS_REQUEST_PENDING)
     {
       std::cerr << describe() << ": failed." << std::endl;
-      throw std::runtime_error("DnsServiceBrowse failed.");
+      MDNSCPP_THROW(std::runtime_error, "DnsServiceBrowse failed.");
     }
   }
 

@@ -29,6 +29,7 @@ target_sources(libmdnscpp PRIVATE
   src/sockAddrToIPProtocol.h
   src/sockAddrToIPProtocol.cpp
   src/utils.cpp
+  src/throw.h
 )
 
 find_library(LIB_DNS_SD NAMES dns_sd)

@@ -1,6 +1,7 @@
 #include <mdnscpp/IPAddress.h>
 
 #include "sockAddrToString.h"
+#include "throw.h"
 
 #include <stdexcept>
 
@@ -65,7 +66,7 @@ namespace mdnscpp
           sizeof(struct sockaddr_in6));
       break;
     default:
-      throw std::runtime_error("Unsupported ip family.");
+      MDNSCPP_THROW(std::runtime_error, "Unsupported ip family.");
     }
   }
 #ifdef LIBMDNS_PLATFORM_WIN32

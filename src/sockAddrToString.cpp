@@ -1,6 +1,8 @@
 #include "sockAddrToString.h"
 
-#include <stdexcept>
+#ifdef __cpp_exception
+#  include <stdexcept>
+#endif
 
 static inline void resizeToNullByte(std::string &str)
 {
@@ -38,7 +40,11 @@ namespace mdnscpp
     }
     else
     {
+#ifdef __cpp_exception
       throw std::invalid_argument("sockAddrToString(): Not and INET address.");
+#else
+      return "";
+#endif
     }
 
     result.resize(len);
@@ -46,8 +52,14 @@ namespace mdnscpp
     const char *s = inet_ntop(address->sa_family, src, result.data(), len);
 
     if (!s)
+    {
+#ifdef __cpp_exception
       throw std::invalid_argument(
           "sockAddrToString(): Failed to print ip address.");
+#else
+      return "";
+#endif
+    }
 
     resizeToNullByte(result);
 

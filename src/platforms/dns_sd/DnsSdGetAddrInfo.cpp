@@ -2,6 +2,7 @@
 
 #include "../../sockAddrToIPProtocol.h"
 #include "../../sockAddrToString.h"
+#include "../../throw.h"
 #include "DnsSdBrowser.h"
 #include "DnsSdPlatform.h"
 #include "DnsSdResolve.h"
@@ -46,7 +47,7 @@ namespace mdnscpp
   {
     auto result = resolve_.lock();
     if (!result)
-      throw std::logic_error(
+      MDNSCPP_THROW(std::logic_error,
           "DnsSdGetAddrInfo() detached from parent DnsSdGetResolve().");
     return result;
   }
@@ -81,7 +82,7 @@ namespace mdnscpp
             hostname.c_str(), getAddrInfoResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
-      throw std::runtime_error("Failed.");
+      MDNSCPP_THROW(std::runtime_error, "Failed.");
 
     return sdRef;
   }

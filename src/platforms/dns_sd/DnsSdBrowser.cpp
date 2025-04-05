@@ -5,6 +5,7 @@
 
 #include <dns_sd.h>
 
+#include "../../throw.h"
 #include "DnsSdPlatform.h"
 
 namespace mdnscpp
@@ -49,7 +50,7 @@ namespace mdnscpp
             browseResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
-      throw std::runtime_error("Failed.");
+      MDNSCPP_THROW(std::runtime_error, "Failed.");
 
     return sdRef;
   }

@@ -96,7 +96,7 @@ namespace mdnscpp
 
   EventLoop::Timeout::Timeout(
       TimeoutState state, EventLoop::Timeout::Callback callback)
-      : state_(state), callback_(callback)
+      : callback_(callback), state_(state)
   {
   }
 

@@ -1,5 +1,7 @@
 #include <mdnscpp/LibuvLoop.h>
 
+#include "throw.h"
+
 #include <cassert>
 #include <iostream>
 #include <limits>
@@ -194,11 +196,11 @@ namespace mdnscpp
    */
 
   LibuvLoop::LibuvAsync::LibuvAsync(LibuvLoop &loop, Callback callback)
-      : loop_(loop), InternalAsync(callback)
+      : InternalAsync(callback), loop_(loop)
   {
     if (uv_async_init(loop.getUvLoop(), &uv_async_, &asyncCallback))
     {
-      throw std::runtime_error("uv_async_init failed.");
+      MDNSCPP_THROW(std::runtime_error, "uv_async_init failed.");
     }
     uv_handle_set_data(reinterpret_cast<uv_handle_t *>(&uv_async_), this);
   }

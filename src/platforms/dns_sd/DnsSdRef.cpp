@@ -1,7 +1,9 @@
 #include "DnsSdRef.h"
 #include "DnsSdPlatform.h"
 
-#include <stdexcept>
+#ifdef __cpp_exception
+#  include <stdexcept>
+#endif
 
 namespace mdnscpp
 {
@@ -40,9 +42,12 @@ namespace mdnscpp
     {
       DNSServiceProcessResult(sdRef_);
     }
+#ifdef __cpp_exception
     else
     {
+
       throw std::runtime_error("Calling process() on a closed ref.");
     }
+#endif
   }
 } // namespace mdnscpp

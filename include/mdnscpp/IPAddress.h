@@ -35,6 +35,6 @@ namespace mdnscpp
 #endif
 
   private:
-    struct sockaddr_storage data_ = {0};
+    struct sockaddr_storage data_;
   };
 } // namespace mdnscpp

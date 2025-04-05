@@ -1,6 +1,8 @@
 #include "AvahiPlatform.h"
 #include "AvahiBrowser.h"
 
+#include "../../throw.h"
+
 #include <iostream>
 
 struct AvahiWatch
@@ -82,7 +84,7 @@ namespace mdnscpp
         &avahiPoll_, AVAHI_CLIENT_NO_FAIL, avahiClientCallback, this, &err);
 
     if (!avahiClient_)
-      throw std::runtime_error("avahi_client_new failed.");
+      MDNSCPP_THROW(std::runtime_error, "avahi_client_new failed.");
   }
 
   std::shared_ptr<Browser> AvahiPlatform::createBrowser(const std::string &type,

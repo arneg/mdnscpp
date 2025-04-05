@@ -1,5 +1,6 @@
 #include "DnsSdResolve.h"
 
+#include "../../throw.h"
 #include "DnsSdBrowser.h"
 #include "DnsSdPlatform.h"
 
@@ -30,7 +31,11 @@ namespace mdnscpp
 
       if (error != kDNSServiceErr_NoError)
       {
+#ifdef __cpp_exception
         throw std::logic_error("Should not happen.");
+#else
+        continue;
+#endif
       }
 
       record.key.resize(strlen(record.key.c_str()));
@@ -81,7 +86,8 @@ namespace mdnscpp
     auto browser = browser_.lock();
     if (!browser)
     {
-      throw std::logic_error("DnsSdResolve detached from parent DnsSdBrowser");
+      MDNSCPP_THROW(
+          std::logic_error, "DnsSdResolve detached from parent DnsSdBrowser");
     }
     return browser;
   }
@@ -110,7 +116,7 @@ namespace mdnscpp
         domain.c_str(), resolveResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
-      throw std::runtime_error("Failed.");
+      MDNSCPP_THROW(std::runtime_error, "Failed.");
 
     return sdRef;
   }

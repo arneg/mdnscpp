@@ -1,6 +1,7 @@
 #include "AvahiBrowser.h"
 #include "AvahiPlatform.h"
 
+#include "../../throw.h"
 #include <iostream>
 
 namespace mdnscpp
@@ -17,7 +18,8 @@ namespace mdnscpp
         static_cast<AvahiLookupFlags>(0), avahiServiceBrowserCallback, this);
 
     if (!avahiBrowser_)
-      throw std::runtime_error("Failed to create avahi service browser.");
+      MDNSCPP_THROW(
+          std::runtime_error, "Failed to create avahi service browser.");
 
     std::cerr << describe() << " started" << std::endl;
   }

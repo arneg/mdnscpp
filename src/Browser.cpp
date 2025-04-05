@@ -1,7 +1,8 @@
 #include <algorithm>
 #include <iostream>
 #include <mdnscpp/Browser.h>
-#include <stdexcept>
+
+#include "throw.h"
 
 namespace mdnscpp
 {
@@ -58,10 +59,12 @@ namespace mdnscpp
 
   void Browser::insertResult(std::shared_ptr<BrowseResult> result)
   {
+#ifdef __cpp_exception
     if (results_.find(result) != results_.end())
     {
       throw std::logic_error("Result already found. Unexpected.");
     }
+#endif
 
     results_.insert(result);
     notifyResultsChanged();
@@ -69,10 +72,12 @@ namespace mdnscpp
 
   void Browser::removeResult(std::shared_ptr<BrowseResult> result)
   {
+#ifdef __cpp_exception
     if (results_.erase(result) != 1)
     {
       throw std::logic_error("Entry not found.");
     }
+#endif
     notifyResultsChanged();
   }
 
@@ -81,14 +86,18 @@ namespace mdnscpp
     if (!onResultsChanged_)
       return;
 
+#ifdef __cpp_exception
     try
     {
+#endif
       onResultsChanged_(getSharedFromThis());
+#ifdef __cpp_exception
     }
     catch (const std::exception &e)
     {
       std::cerr << "onResultsChanged() threw an exception: " << e.what()
                 << std::endl;
     }
+#endif
   }
 } // namespace mdnscpp
