@@ -49,8 +49,9 @@ if(libuv_FOUND)
     include/mdnscpp/LibuvLoop.h
     src/LibuvLoop.cpp
   )
-  target_link_libraries(libmdnscpp PUBLIC uv)
+  target_link_libraries(libmdnscpp PUBLIC "${libuv_LIBRARIES}")
   target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_LOOP_LIBUV)
+  target_include_directories(libmdnscpp PUBLIC "${libuv_INCLUDE_DIRS}")
 endif()
 
 if(LIB_AVAHI)
