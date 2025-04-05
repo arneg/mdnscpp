@@ -26,6 +26,22 @@ namespace mdnscpp
     uint64_t now() const override;
 
   private:
+    class LibuvWatch;
+    class LibuvPoll
+    {
+    public:
+      LibuvPoll(LibuvWatch *watch, int fd);
+
+      void update(int events);
+      void close();
+      void onEvents(int status, int events);
+
+    private:
+      LibuvWatch *watch_;
+      uv_poll_t uv_poll_;
+      int fd_;
+    };
+
     class LibuvWatch : public Watch
     {
     public:
@@ -33,10 +49,13 @@ namespace mdnscpp
       ~LibuvWatch();
       void update(EventType events) override;
 
+      uv_loop_t *getUvLoop() const;
+
       using Watch::updateReturnedEvents;
 
     private:
       LibuvLoop &loop_;
+      LibuvPoll *poll_;
     };
 
     class LibuvTimeout : public Timeout

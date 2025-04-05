@@ -1,11 +1,47 @@
 #include <mdnscpp/LibuvLoop.h>
 
-#include <limits>
-
+#include <cassert>
 #include <iostream>
+#include <limits>
 
 namespace mdnscpp
 {
+  /**
+   * Helpers
+   */
+
+  EventLoop::EventType fromUvEvents(int events)
+  {
+    EventLoop::EventType result;
+
+    if (events & UV_READABLE)
+      result.setRead();
+    if (events & UV_WRITABLE)
+      result.setWrite();
+    if (events & UV_DISCONNECT)
+      result.setDisconnect();
+
+    return result;
+  }
+
+  int toUvEvents(EventLoop::EventType events)
+  {
+    int result = 0;
+
+    if (events.hasRead())
+      result |= UV_READABLE;
+    if (events.hasWrite())
+      result |= UV_WRITABLE;
+    if (events.hasDisconnect())
+      result |= UV_DISCONNECT;
+
+    return result;
+  }
+
+  /**
+   * LibuvLoop
+   */
+
   void LibuvLoop::run() { uv_run(uv_default_loop(), UV_RUN_DEFAULT); }
 
   LibuvLoop::LibuvLoop(uv_loop_t *loop) : uv_loop_(loop) {}
@@ -15,7 +51,9 @@ namespace mdnscpp
   std::shared_ptr<EventLoop::Watch> LibuvLoop::createWatch(
       int fd, EventLoop::EventType events, Watch::Callback callback)
   {
-    return nullptr;
+    auto watch = std::make_shared<LibuvWatch>(*this, fd, callback);
+    watch->update(events);
+    return watch;
   }
 
   std::shared_ptr<EventLoop::Timeout> LibuvLoop::createTimeout(
@@ -33,18 +71,93 @@ namespace mdnscpp
     return std::make_shared<Async>(*internalAsync);
   }
 
-  LibuvLoop::LibuvWatch::LibuvWatch(
-      LibuvLoop &loop, int fd, EventLoop::Watch::Callback callback)
-      : EventLoop::Watch(fd, callback), loop_(loop)
+  LibuvLoop::~LibuvLoop() {}
+
+  /**
+   * LibuvPoll
+   */
+
+  LibuvLoop::LibuvPoll::LibuvPoll(LibuvWatch *watch, int fd)
+      : watch_(watch), fd_(fd)
   {
+    uv_poll_init(watch->getUvLoop(), &uv_poll_, fd);
+    uv_handle_set_data(reinterpret_cast<uv_handle_t *>(&uv_poll_), this);
   }
 
-  LibuvLoop::LibuvWatch::~LibuvWatch() {}
+  void LibuvLoop::LibuvPoll::update(int events)
+  {
+    if (events)
+    {
+      uv_poll_start(
+          &uv_poll_, events, [](uv_poll_t *handle, int status, int events) {
+            reinterpret_cast<LibuvPoll *>(handle->data)
+                ->onEvents(status, events);
+          });
+    }
+    else
+    {
+      uv_poll_stop(&uv_poll_);
+    }
+  }
+
+  void LibuvLoop::LibuvPoll::close()
+  {
+    assert(watch_);
+    watch_ = nullptr;
+    uv_poll_stop(&uv_poll_);
+    uv_close(
+        reinterpret_cast<uv_handle_t *>(&uv_poll_), [](uv_handle_t *handle) {
+          delete reinterpret_cast<LibuvPoll *>(handle->data);
+        });
+  }
+
+  void LibuvLoop::LibuvPoll::onEvents(int status, int events)
+  {
+    if (!watch_)
+      return;
+
+    auto callback = watch_->getCallback();
+
+    EventLoop::EventType e =
+        (status < 0) ? EventLoop::EventType::TYPE_ERROR : fromUvEvents(events);
+
+    callback(e);
+  }
+
+  /**
+   * LibuvWatch
+   */
+
+  LibuvLoop::LibuvWatch::LibuvWatch(
+      LibuvLoop &loop, int fd, EventLoop::Watch::Callback callback)
+      : EventLoop::Watch(fd, callback), loop_(loop), poll_(nullptr)
+  {
+    poll_ = new LibuvPoll(this, fd);
+  }
+
+  LibuvLoop::LibuvWatch::~LibuvWatch()
+  {
+    if (poll_)
+    {
+      poll_->close();
+      poll_ = nullptr;
+    }
+  }
 
   void LibuvLoop::LibuvWatch::update(EventLoop::EventType events)
   {
     updateRequestedEvents(events);
+    poll_->update(toUvEvents(events));
   }
+
+  uv_loop_t *LibuvLoop::LibuvWatch::getUvLoop() const
+  {
+    return loop_.getUvLoop();
+  }
+
+  /**
+   * LibuvTimeout
+   */
 
   LibuvLoop::LibuvTimeout::LibuvTimeout(
       LibuvLoop &loop, TimeoutState state, Callback callback)
@@ -76,7 +189,9 @@ namespace mdnscpp
 
   void LibuvLoop::LibuvTimeout::notify() { Timeout::notify(); }
 
-  LibuvLoop::~LibuvLoop() {}
+  /**
+   * LibuvAsync
+   */
 
   LibuvLoop::LibuvAsync::LibuvAsync(LibuvLoop &loop, Callback callback)
       : loop_(loop), InternalAsync(callback)
