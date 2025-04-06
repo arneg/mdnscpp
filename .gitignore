@@ -1,2 +1,5 @@
 /build
 /.vscode
+/mdns-browse/node_modules
+/mdns-browse/src/mdnscpp
+/mdns-browse/build
