@@ -16,7 +16,9 @@ public:
 
   Napi::Object fromTxtRecord(const mdnscpp::TxtRecord &record);
   Napi::Array fromTxtRecords(const std::vector<mdnscpp::TxtRecord> &records);
-  Napi::Object fromBrowseResult(const mdnscpp::BrowseResult &result);
+  Napi::Object fromBrowseResult(const mdnscpp::BrowseResult &browseResult);
+  Napi::Object fromBrowseResult(
+      std::shared_ptr<mdnscpp::BrowseResult> browseResult);
 
   static void cleanup(const Napi::CallbackInfo &info);
   static void finalizer(Napi::Env env, BrowseContext *ctx);
@@ -26,15 +28,18 @@ private:
   Napi::AsyncContext asyncCtx_;
   Napi::FunctionReference callbackRef_;
   std::shared_ptr<void> handle_;
+  std::unordered_map<std::shared_ptr<mdnscpp::BrowseResult>,
+      Napi::ObjectReference>
+      resultCache_;
 };
 
 BrowseContext::BrowseContext(Napi::Env env, const Napi::Function &callback)
     : env_(env), asyncCtx_(env_, "mdns-browse"),
-      callbackRef_{Napi::Reference<Napi::Function>::New(callback, 1)}
+      callbackRef_{Napi::Persistent(callback)}
 {
 }
 
-BrowseContext::~BrowseContext() {}
+BrowseContext::~BrowseContext() { resultCache_.clear(); }
 
 Napi::Object BrowseContext::fromTxtRecord(const mdnscpp::TxtRecord &record)
 {
@@ -42,6 +47,7 @@ Napi::Object BrowseContext::fromTxtRecord(const mdnscpp::TxtRecord &record)
   result.Set("key", Napi::String::New(env_, record.key));
   if (record.value)
     result.Set("value", Napi::String::New(env_, *record.value));
+  result.Freeze();
   return result;
 }
 Napi::Array BrowseContext::fromTxtRecords(
@@ -53,6 +59,7 @@ Napi::Array BrowseContext::fromTxtRecords(
   {
     result.Set(index++, fromTxtRecord(it));
   }
+  result.Freeze();
   return result;
 }
 Napi::Object BrowseContext::fromBrowseResult(
@@ -62,12 +69,29 @@ Napi::Object BrowseContext::fromBrowseResult(
   result.Set("type", Napi::String::New(env_, browseResult.getType()));
   result.Set("protocol", Napi::String::New(env_, browseResult.getProtocol()));
   result.Set("name", Napi::String::New(env_, browseResult.getName()));
-  result.Set("fullname", Napi::String::New(env_, browseResult.getFullname()));
   result.Set("domain", Napi::String::New(env_, browseResult.getDomain()));
   result.Set("hostname", Napi::String::New(env_, browseResult.getHostname()));
   result.Set("address", Napi::String::New(env_, browseResult.getAddress()));
   result.Set("interface", Napi::Number::New(env_, browseResult.getInterface()));
   result.Set("txtRecords", fromTxtRecords(browseResult.getTxtRecords()));
+  result.Freeze();
+  return result;
+}
+
+Napi::Object BrowseContext::fromBrowseResult(
+    std::shared_ptr<mdnscpp::BrowseResult> browseResult)
+{
+  auto it = resultCache_.find(browseResult);
+
+  if (it != resultCache_.end())
+  {
+    return it->second.Value();
+  }
+
+  auto result = fromBrowseResult(*browseResult);
+
+  resultCache_.insert({browseResult, Napi::Persistent(result)});
+
   return result;
 }
 
@@ -77,10 +101,26 @@ void BrowseContext::onResultsChanged(std::shared_ptr<mdnscpp::Browser> browser)
   auto results = Napi::Array::New(env_);
   uint32_t index = 0;
 
-  for (const auto &it : browser->getResults())
+  const auto &browseResults = browser->getResults();
+
+  for (const auto &it : browseResults)
   {
-    results.Set(index++, fromBrowseResult(*it));
+    results.Set(index++, fromBrowseResult(it));
   }
+
+  // Drop all old results from the cache
+  std::vector<std::shared_ptr<mdnscpp::BrowseResult>> oldResults;
+
+  for (const auto &it : resultCache_)
+  {
+    if (browseResults.find(it.first) == browseResults.end())
+    {
+      oldResults.push_back(it.first);
+    }
+  }
+
+  for (auto entry : oldResults)
+    resultCache_.erase(entry);
 
   callbackRef_.MakeCallback(env_.Global(), {std::move(results)}, asyncCtx_);
 }
@@ -93,9 +133,15 @@ void BrowseContext::setHandle(std::shared_ptr<void> handle)
 void BrowseContext::cleanup(const Napi::CallbackInfo &info)
 {
   BrowseContext *ctx = reinterpret_cast<BrowseContext *>(info.Data());
+  std::cerr << "cleanup called." << std::endl;
   ctx->handle_ = nullptr;
+  ctx->resultCache_.clear();
 }
-void BrowseContext::finalizer(Napi::Env env, BrowseContext *ctx) { delete ctx; }
+void BrowseContext::finalizer(Napi::Env env, BrowseContext *ctx)
+{
+  std::cerr << "finalized." << std::endl;
+  delete ctx;
+}
 
 class MdnsBrowseAddon : public Napi::Addon<MdnsBrowseAddon>
 {
