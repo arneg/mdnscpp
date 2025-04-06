@@ -14,6 +14,10 @@ public:
   void onResultsChanged(std::shared_ptr<mdnscpp::Browser> browser);
   void setHandle(std::shared_ptr<void> handle);
 
+  Napi::Object fromTxtRecord(const mdnscpp::TxtRecord &record);
+  Napi::Array fromTxtRecords(const std::vector<mdnscpp::TxtRecord> &records);
+  Napi::Object fromBrowseResult(const mdnscpp::BrowseResult &result);
+
   static void cleanup(const Napi::CallbackInfo &info);
   static void finalizer(Napi::Env env, BrowseContext *ctx);
 
@@ -32,11 +36,53 @@ BrowseContext::BrowseContext(Napi::Env env, const Napi::Function &callback)
 
 BrowseContext::~BrowseContext() {}
 
+Napi::Object BrowseContext::fromTxtRecord(const mdnscpp::TxtRecord &record)
+{
+  auto result = Napi::Object::New(env_);
+  result.Set("key", Napi::String::New(env_, record.key));
+  if (record.value)
+    result.Set("value", Napi::String::New(env_, *record.value));
+  return result;
+}
+Napi::Array BrowseContext::fromTxtRecords(
+    const std::vector<mdnscpp::TxtRecord> &records)
+{
+  auto result = Napi::Array::New(env_);
+  uint32_t index = 0;
+  for (const auto &it : records)
+  {
+    result.Set(index++, fromTxtRecord(it));
+  }
+  return result;
+}
+Napi::Object BrowseContext::fromBrowseResult(
+    const mdnscpp::BrowseResult &browseResult)
+{
+  auto result = Napi::Object::New(env_);
+  result.Set("type", Napi::String::New(env_, browseResult.getType()));
+  result.Set("protocol", Napi::String::New(env_, browseResult.getProtocol()));
+  result.Set("name", Napi::String::New(env_, browseResult.getName()));
+  result.Set("fullname", Napi::String::New(env_, browseResult.getFullname()));
+  result.Set("domain", Napi::String::New(env_, browseResult.getDomain()));
+  result.Set("hostname", Napi::String::New(env_, browseResult.getHostname()));
+  result.Set("address", Napi::String::New(env_, browseResult.getAddress()));
+  result.Set("interface", Napi::Number::New(env_, browseResult.getInterface()));
+  result.Set("txtRecords", fromTxtRecords(browseResult.getTxtRecords()));
+  return result;
+}
+
 void BrowseContext::onResultsChanged(std::shared_ptr<mdnscpp::Browser> browser)
 {
   Napi::HandleScope scope(env_);
+  auto results = Napi::Array::New(env_);
+  uint32_t index = 0;
 
-  callbackRef_.MakeCallback(env_.Global(), {}, asyncCtx_);
+  for (const auto &it : browser->getResults())
+  {
+    results.Set(index++, fromBrowseResult(*it));
+  }
+
+  callbackRef_.MakeCallback(env_.Global(), {std::move(results)}, asyncCtx_);
 }
 
 void BrowseContext::setHandle(std::shared_ptr<void> handle)

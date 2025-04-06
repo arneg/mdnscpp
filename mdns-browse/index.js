@@ -10,6 +10,6 @@ const cleanup = startBrowse(
     protocol: "_tcp",
   },
   (results) => {
-    console.log("results");
+    console.log("results", results);
   }
 );
