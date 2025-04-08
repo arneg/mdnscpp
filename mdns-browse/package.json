@@ -2,9 +2,13 @@
   "name": "mdns-browse",
   "version": "1.0.0",
   "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "import": "node import-mdnscpp.js"
+    "test": "node --test test/*.js",
+    "import": "node import-mdnscpp.js",
+    "build": "node-gyp build"
   },
   "keywords": [
     "mdns",
@@ -18,5 +22,8 @@
     "bindings": "*",
     "get-uv-event-loop-napi-h": "^1.0.6",
     "node-addon-api": "*"
+  },
+  "devDependencies": {
+    "simple-mdns-announce": "^1.1.0"
   }
 }

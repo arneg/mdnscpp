@@ -2,14 +2,34 @@ import { default as bindings } from "bindings";
 
 const { startBrowse } = bindings("mdns-browse-native.node");
 
-// Use your bindings defined in your C files
+function matchAll() {
+  return true;
+}
 
-const cleanup = startBrowse(
-  {
-    type: "_oca",
-    protocol: "_tcp",
-  },
-  (results) => {
-    console.log("results", results);
-  }
-);
+export function find(options, predicate, signal) {
+  if (!predicate) predicate = matchAll;
+
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
+
+    let cleanup;
+
+    cleanup = startBrowse(options, (results) => {
+      const result = results.find(predicate);
+
+      if (result) {
+        resolve(result);
+        if (cleanup) cleanup();
+        cleanup = null;
+      }
+    });
+
+    signal?.addEventListener("abort", () => {
+      reject(signal.reason);
+      if (cleanup) cleanup();
+      cleanup = null;
+    });
+  });
+}
+
+export { startBrowse };
