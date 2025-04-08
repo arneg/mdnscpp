@@ -4,7 +4,7 @@
 #include "DnsSdBrowser.h"
 #include "DnsSdPlatform.h"
 
-#include <iostream>
+#include "../../debug.h"
 
 #include <netdb.h>
 
@@ -61,10 +61,13 @@ namespace mdnscpp
         browser_(browser), interfaceIndex_(interfaceIndex), name_(name),
         type_(type), domain_(domain)
   {
-    std::cerr << describe() << std::endl;
+    MDNSCPP_INFO << describe() << MDNSCPP_ENDL;
   }
 
-  DnsSdResolve::~DnsSdResolve() { std::cerr << "~" << describe() << std::endl; }
+  DnsSdResolve::~DnsSdResolve()
+  {
+    MDNSCPP_INFO << "~" << describe() << MDNSCPP_ENDL;
+  }
 
   std::string DnsSdResolve::describe() const
   {
@@ -128,13 +131,14 @@ namespace mdnscpp
   {
     if (errorCode != kDNSServiceErr_NoError)
     {
-      std::cerr << describe() << " failed with error " << errorCode
-                << std::endl;
+      MDNSCPP_ERROR << describe() << " failed with error " << errorCode
+                    << MDNSCPP_ENDL;
     }
     else
     {
-      std::cerr << describe() << "Resolved " << fullname << " to " << hosttarget
-                << " with " << txtLen << " bytes of txt records " << std::endl;
+      MDNSCPP_INFO << describe() << "Resolved " << fullname << " to "
+                   << hosttarget << " with " << txtLen
+                   << " bytes of txt records " << MDNSCPP_ENDL;
 
       txtRecords_ = parseTxtRecords(txtRecord, txtLen);
 

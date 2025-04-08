@@ -4,8 +4,8 @@
 
 #include "../../throw.h"
 
+#include "../../debug.h"
 #include <cwchar>
-#include <iostream>
 #include <stdexcept>
 
 #include "dnsTypeToString.h"
@@ -21,8 +21,8 @@ namespace mdnscpp
 
     for (DNS_RECORD *entry = records; entry; entry = entry->pNext)
     {
-      std::cerr << dnsTypeToString(entry->wType) << " ttl: " << entry->dwTtl
-                << std::endl;
+      MDNSCPP_INFO << dnsTypeToString(entry->wType) << " ttl: " << entry->dwTtl
+                   << MDNSCPP_ENDL;
       switch (entry->wType)
       {
       case DNS_TYPE_PTR: {
@@ -30,25 +30,26 @@ namespace mdnscpp
         result.queryName =
             fromWideString((const wchar_t *)entry->Data.PTR.pNameHost);
         result.ttl = entry->dwTtl;
-        std::cerr << "hostname: '" << result.queryName << "'" << std::endl;
+        MDNSCPP_INFO << "hostname: '" << result.queryName << "'"
+                     << MDNSCPP_ENDL;
         break;
       }
 
       case DNS_TYPE_A: {
         result.addresses.emplace_back(&entry->Data.A.IpAddress);
-        std::cerr
+        MDNSCPP_INFO
             << "ip4: '"
             << result.addresses[result.addresses.size() - 1].getDecimalString()
-            << "'" << std::endl;
+            << "'" << MDNSCPP_ENDL;
         break;
       }
 
       case DNS_TYPE_AAAA: {
         result.addresses.emplace_back(&entry->Data.AAAA.Ip6Address);
-        std::cerr
+        MDNSCPP_INFO
             << "ip6: '"
             << result.addresses[result.addresses.size() - 1].getDecimalString()
-            << "'" << std::endl;
+            << "'" << MDNSCPP_ENDL;
         break;
       }
       case DNS_TYPE_SRV: {
@@ -56,8 +57,8 @@ namespace mdnscpp
         result.hostname =
             fromWideString((const wchar_t *)entry->Data.SRV.pNameTarget);
         result.port = entry->Data.SRV.wPort;
-        std::cerr << "srv: '" << result.hostname << "' port: " << result.port
-                  << std::endl;
+        MDNSCPP_INFO << "srv: '" << result.hostname << "' port: " << result.port
+                     << MDNSCPP_ENDL;
         break;
       }
       }
@@ -89,7 +90,7 @@ namespace mdnscpp
             domain.size() ? domain : defaultDomain, interfaceIndex, ipProtocol),
         queue_(platform->getEventLoop()), platform_(platform)
   {
-    std::cerr << describe() << std::endl;
+    MDNSCPP_INFO << describe() << MDNSCPP_ENDL;
     DNS_SERVICE_BROWSE_REQUEST request;
 
     auto queryName =
@@ -105,18 +106,18 @@ namespace mdnscpp
 
     if (status != DNS_REQUEST_PENDING)
     {
-      std::cerr << describe() << ": failed." << std::endl;
+      MDNSCPP_ERROR << describe() << ": failed." << MDNSCPP_ENDL;
       MDNSCPP_THROW(std::runtime_error, "DnsServiceBrowse failed.");
     }
   }
 
   Win32Browser::~Win32Browser()
   {
-    std::cerr << "~Win32Browser()" << std::endl;
+    MDNSCPP_INFO << "~Win32Browser()" << MDNSCPP_ENDL;
     auto status = DnsServiceBrowseCancel(&cancel_);
     if (status != ERROR_SUCCESS)
     {
-      std::cerr << "DnsServiceBrowseCancel() failed" << std::endl;
+      MDNSCPP_ERROR << "DnsServiceBrowseCancel() failed" << MDNSCPP_ENDL;
     }
   }
 

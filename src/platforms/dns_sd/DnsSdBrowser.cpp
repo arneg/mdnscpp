@@ -1,10 +1,11 @@
 #include "DnsSdBrowser.h"
 
-#include <iostream>
+#include "../../debug.h"
 #include <stdexcept>
 
 #include <dns_sd.h>
 
+#include "../../debug.h"
 #include "../../throw.h"
 #include "DnsSdPlatform.h"
 
@@ -21,7 +22,10 @@ namespace mdnscpp
   {
   }
 
-  DnsSdBrowser::~DnsSdBrowser() { std::cerr << "~DnsSdBrowser()" << std::endl; }
+  DnsSdBrowser::~DnsSdBrowser()
+  {
+    MDNSCPP_INFO << "~DnsSdBrowser()" << MDNSCPP_ENDL;
+  }
 
   std::string DnsSdBrowser::describe() const
   {
@@ -61,8 +65,8 @@ namespace mdnscpp
   {
     if (kDNSServiceErr_NoError != errorCode)
     {
-      std::cerr << describe() << " Service browsing failed with err "
-                << errorCode << std::endl;
+      MDNSCPP_ERROR << describe() << " Service browsing failed with err "
+                    << errorCode << MDNSCPP_ENDL;
       return;
     }
 
@@ -79,10 +83,10 @@ namespace mdnscpp
 
     if (flags & kDNSServiceFlagsAdd)
     {
-      std::cerr << describe() << " Service found "
-                << "serviceName " << serviceName << ", "
-                << "regtype " << regtype << ", "
-                << "replyDomain " << replyDomain << std::endl;
+      MDNSCPP_INFO << describe() << " Service found "
+                   << "serviceName " << serviceName << ", "
+                   << "regtype " << regtype << ", "
+                   << "replyDomain " << replyDomain << MDNSCPP_ENDL;
 
       resolves_[key] = std::make_shared<DnsSdResolve>(shared_from_this(),
           interfaceIndexIndex, serviceName, regtype, replyDomain);
@@ -90,10 +94,10 @@ namespace mdnscpp
     else
     {
       resolves_.erase(key);
-      std::cerr << describe() << " Service removed "
-                << "serviceName " << serviceName << ", "
-                << "regtype " << regtype << ", "
-                << "replyDomain " << replyDomain << std::endl;
+      MDNSCPP_INFO << describe() << " Service removed "
+                   << "serviceName " << serviceName << ", "
+                   << "regtype " << regtype << ", "
+                   << "replyDomain " << replyDomain << MDNSCPP_ENDL;
     }
   }
 

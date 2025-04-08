@@ -9,7 +9,7 @@
 
 #include <mdnscpp/BrowseResult.h>
 
-#include <iostream>
+#include "../../debug.h"
 #include <stdexcept>
 
 #include <netdb.h>
@@ -25,12 +25,12 @@ namespace mdnscpp
         resolve_(resolve), interfaceIndex_(interfaceIndex), hostname_(hostname),
         port_(port)
   {
-    std::cerr << describe() << " created " << std::endl;
+    MDNSCPP_INFO << describe() << " created " << MDNSCPP_ENDL;
   }
 
   DnsSdGetAddrInfo::~DnsSdGetAddrInfo()
   {
-    std::cerr << "~" << describe() << std::endl;
+    MDNSCPP_INFO << "~" << describe() << MDNSCPP_ENDL;
   }
 
   std::string DnsSdGetAddrInfo::describe() const
@@ -58,7 +58,8 @@ namespace mdnscpp
       const char *hostname, const struct sockaddr *address, uint32_t ttl)
   {
     auto ipAddress = sockAddrToString(address);
-    std::cerr << describe() << ".onResult(" << ipAddress << ")" << std::endl;
+    MDNSCPP_INFO << describe() << ".onResult(" << ipAddress << ")"
+                 << MDNSCPP_ENDL;
 
     auto resolve = getResolve();
     auto browser = resolve->getBrowser();

@@ -1,8 +1,8 @@
 #include "AvahiBrowser.h"
 #include "AvahiPlatform.h"
 
+#include "../../debug.h"
 #include "../../throw.h"
-#include <iostream>
 
 namespace mdnscpp
 {
@@ -21,7 +21,7 @@ namespace mdnscpp
       MDNSCPP_THROW(
           std::runtime_error, "Failed to create avahi service browser.");
 
-    std::cerr << describe() << " started" << std::endl;
+    MDNSCPP_INFO << describe() << " started" << MDNSCPP_ENDL;
   }
 
   std::string AvahiBrowser::describe() const
@@ -42,10 +42,10 @@ namespace mdnscpp
       AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
       const char *type, const char *domain, AvahiLookupResultFlags flags)
   {
-    std::cerr << describe() << " avahiServiceBrowserCallback("
-              << (name ? name : "nil") << ", " << (type ? type : "nil") << ", "
-              << (domain ? domain : "nil") << ", " << interfaceIndex << ")"
-              << std::endl;
+    MDNSCPP_INFO << describe() << " avahiServiceBrowserCallback("
+                 << (name ? name : "nil") << ", " << (type ? type : "nil")
+                 << ", " << (domain ? domain : "nil") << ", " << interfaceIndex
+                 << ")" << MDNSCPP_ENDL;
   }
 
   void AvahiBrowser::avahiServiceBrowserCallback(AvahiServiceBrowser *b,

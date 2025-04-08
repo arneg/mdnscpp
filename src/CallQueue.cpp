@@ -1,6 +1,6 @@
 #include <mdnscpp/CallQueue.h>
 
-#include <iostream>
+#include "debug.h"
 #include <utility>
 
 namespace mdnscpp

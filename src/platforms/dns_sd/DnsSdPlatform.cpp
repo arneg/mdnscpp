@@ -4,7 +4,7 @@
 
 #include <dns_sd.h>
 
-#include <iostream>
+#include "../../debug.h"
 
 namespace mdnscpp
 {

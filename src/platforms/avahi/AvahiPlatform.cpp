@@ -3,7 +3,7 @@
 
 #include "../../throw.h"
 
-#include <iostream>
+#include "../../debug.h"
 
 struct AvahiWatch
 {
@@ -65,8 +65,8 @@ namespace mdnscpp
 
   AvahiPlatform::AvahiPlatform(EventLoop &loop) : Platform(loop)
   {
-    std::cerr << "this " << (void *)(this) << std::endl;
-    std::cerr << "loop " << (void *)(&loop) << std::endl;
+    MDNSCPP_INFO << "this " << (void *)(this) << MDNSCPP_ENDL;
+    MDNSCPP_INFO << "loop " << (void *)(&loop) << MDNSCPP_ENDL;
     avahiPoll_ = {
         .userdata = this,
         .watch_new = avahiPollWatchNew,
@@ -135,8 +135,8 @@ namespace mdnscpp
     AvahiPlatform *self = reinterpret_cast<AvahiPlatform *>(api->userdata);
     AvahiTimeout *t = new AvahiTimeout();
 
-    std::cerr << "self " << (void *)(self) << std::endl;
-    std::cerr << "loop " << (void *)(&self->loop_) << std::endl;
+    MDNSCPP_INFO << "self " << (void *)(self) << MDNSCPP_ENDL;
+    MDNSCPP_INFO << "loop " << (void *)(&self->loop_) << MDNSCPP_ENDL;
 
     t->timeout = self->loop_.createTimeout(stateFromTimeval(tv),
         [=](EventLoop::Timeout &) { callback(t, userdata); });

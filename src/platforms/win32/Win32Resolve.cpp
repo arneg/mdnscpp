@@ -6,7 +6,7 @@
 #include "fromWideString.h"
 #include "toWideString.h"
 
-#include <iostream>
+#include "../../debug.h"
 
 static constexpr uint64_t pendingRetryInterval = 5 * 1000;
 
@@ -18,8 +18,8 @@ namespace mdnscpp
       : browser_(browser), queryName_(queryName),
         queue_(browser->getPlatform()->getEventLoop())
   {
-    std::cerr << "Win32Resolve(" << browser->describe() << ", " << queryName
-              << ")" << std::endl;
+    MDNSCPP_INFO << "Win32Resolve(" << browser->describe() << ", " << queryName
+                 << ")" << MDNSCPP_ENDL;
   }
 
   void Win32Resolve::resetUpdateTime()
@@ -50,8 +50,9 @@ namespace mdnscpp
     {
       if (age() < pendingRetryInterval)
       {
-        std::cerr << "Resolve is still pending for less than "
-                  << pendingRetryInterval << ". Retry later." << std::endl;
+        MDNSCPP_INFO << "Resolve is still pending for less than "
+                     << pendingRetryInterval << ". Retry later."
+                     << MDNSCPP_ENDL;
         return;
       }
 
@@ -62,15 +63,14 @@ namespace mdnscpp
 
     if (isFresh())
     {
-      std::cerr << "Result is still fresh." << std::endl;
+      MDNSCPP_INFO << "Result is still fresh." << MDNSCPP_ENDL;
       return;
     }
 
     ttl_ = ttl;
     state_ = State::PENDING;
     resetUpdateTime();
-
-    std::cerr << "Calling DnsServiceResolve." << std::endl;
+    MDNSCPP_INFO << "Calling DnsServiceResolve." << MDNSCPP_ENDL;
 
     DNS_SERVICE_RESOLVE_REQUEST request;
 
@@ -98,7 +98,7 @@ namespace mdnscpp
       return;
     if (slot && result && *slot == *result)
     {
-      std::cerr << "Result unchanged. Skipping update." << std::endl;
+      MDNSCPP_INFO << "Result unchanged. Skipping update." << MDNSCPP_ENDL;
       return;
     }
 
@@ -149,8 +149,8 @@ namespace mdnscpp
                         instanceName, this]() {
       if (state_ != State::PENDING)
       {
-        std::cerr << "Got resolve result in unexpected state. ignoring."
-                  << std::endl;
+        MDNSCPP_INFO << "Got resolve result in unexpected state. ignoring."
+                     << MDNSCPP_ENDL;
         return;
       }
 
@@ -160,7 +160,8 @@ namespace mdnscpp
       auto makeResult = [&](const IPAddress &ip) {
         return std::make_shared<BrowseResult>(txtRecords, browser_->getType(),
             browser_->getProtocol(), instanceName, browser_->getDomain(),
-            hostname, ip.getDecimalString(), interfaceIndex, ip.getType());
+            hostname, ip.getDecimalString(), interfaceIndex, ip.getType(),
+            port);
       };
 
       updateResult(ip4Result_, ipv4 ? makeResult(*ipv4) : nullptr);
@@ -190,8 +191,8 @@ namespace mdnscpp
 
   Win32Resolve::~Win32Resolve()
   {
-    std::cerr << "~Win32Resolve(" << browser_->describe() << ", " << queryName_
-              << ")" << std::endl;
+    MDNSCPP_INFO << "~Win32Resolve(" << browser_->describe() << ", "
+                 << queryName_ << ")" << MDNSCPP_ENDL;
 
     if (ip4Result_)
       browser_->removeResult(ip4Result_);

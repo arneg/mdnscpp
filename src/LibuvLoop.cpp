@@ -2,8 +2,8 @@
 
 #include "throw.h"
 
+#include "debug.h"
 #include <cassert>
-#include <iostream>
 #include <limits>
 
 namespace mdnscpp

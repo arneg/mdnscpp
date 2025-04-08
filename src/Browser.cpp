@@ -1,5 +1,5 @@
+#include "debug.h"
 #include <algorithm>
-#include <iostream>
 #include <mdnscpp/Browser.h>
 
 #include "throw.h"
@@ -83,8 +83,8 @@ namespace mdnscpp
     }
     catch (const std::exception &e)
     {
-      std::cerr << "onResultsChanged() threw an exception: " << e.what()
-                << std::endl;
+      MDNSCPP_ERROR << "onResultsChanged() threw an exception: " << e.what()
+                    << MDNSCPP_ENDL;
     }
 #endif
   }

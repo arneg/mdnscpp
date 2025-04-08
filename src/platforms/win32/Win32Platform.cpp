@@ -1,7 +1,7 @@
 #include "Win32Platform.h"
 #include "Win32Browser.h"
 
-#include <iostream>
+#include "../../debug.h"
 
 namespace mdnscpp
 {

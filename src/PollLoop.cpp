@@ -5,7 +5,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include <iostream>
+#include "debug.h"
 
 static struct timeval getNow()
 {
@@ -68,7 +68,7 @@ namespace mdnscpp
 
     updatePollFds();
 
-    //std::cerr << "Calling poll with " << pollfds_.size() << " fds" << std::endl;
+    //MDNSCPP_INFO << "Calling poll with " << pollfds_.size() << " fds" << MDNSCPP_ENDL;
 
     int nready = poll(pollfds_.data(), pollfds_.size(), getSmallestTimeout());
 
@@ -147,7 +147,7 @@ namespace mdnscpp
   std::shared_ptr<EventLoop::Timeout> PollLoop::createTimeout(
       TimeoutState state, Timeout::Callback callback)
   {
-    //std::cerr << "creating timeout" << std::endl;
+    //MDNSCPP_INFO << "creating timeout" << MDNSCPP_ENDL;
     return std::make_shared<PollTimeout>(*this, state, callback);
   }
 
@@ -303,7 +303,7 @@ namespace mdnscpp
       polledWatches_.push_back(watch);
     }
 
-    //std::cerr << "Generated pollfds " << pollfds_.size() << std::endl;
+    //MDNSCPP_INFO << "Generated pollfds " << pollfds_.size() << MDNSCPP_ENDL;
     pollfdsInvalid_ = false;
   }
 
