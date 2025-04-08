@@ -19,10 +19,11 @@
 namespace mdnscpp
 {
   DnsSdGetAddrInfo::DnsSdGetAddrInfo(std::shared_ptr<DnsSdResolve> resolve,
-      size_t interfaceIndex, const std::string &hostname)
+      size_t interfaceIndex, const std::string &hostname, uint16_t port)
       : DnsSdRef(resolve->getPlatform(),
             startGetAddrInfo(interfaceIndex, hostname, this)),
-        resolve_(resolve), interfaceIndex_(interfaceIndex), hostname_(hostname)
+        resolve_(resolve), interfaceIndex_(interfaceIndex), hostname_(hostname),
+        port_(port)
   {
     std::cerr << describe() << " created " << std::endl;
   }
@@ -68,7 +69,7 @@ namespace mdnscpp
         std::make_shared<BrowseResult>(resolve->getTxtRecords(),
             browser->getType(), browser->getProtocol(), resolve->getName(),
             resolve->getDomain(), hostname, ipAddress, resolve->getInterface(),
-            sockAddrToIPProtocol(address)));
+            sockAddrToIPProtocol(address), port_));
   }
 
   DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfo(

@@ -15,7 +15,7 @@ namespace mdnscpp
   {
   public:
     DnsSdGetAddrInfo(std::shared_ptr<DnsSdResolve> resolve,
-        size_t interfaceIndex, const std::string &hostname);
+        size_t interfaceIndex, const std::string &hostname, uint16_t port);
     ~DnsSdGetAddrInfo();
 
     std::string describe() const;
@@ -26,6 +26,7 @@ namespace mdnscpp
     const std::weak_ptr<DnsSdResolve> resolve_;
     const size_t interfaceIndex_;
     const std::string hostname_;
+    const uint16_t port_;
 
     std::unordered_map<std::string, std::shared_ptr<void>>
         resultRemovalContext_;

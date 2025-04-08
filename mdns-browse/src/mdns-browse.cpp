@@ -72,8 +72,10 @@ Napi::Object BrowseContext::fromBrowseResult(
   result.Set("domain", Napi::String::New(env_, browseResult.getDomain()));
   result.Set("hostname", Napi::String::New(env_, browseResult.getHostname()));
   result.Set("address", Napi::String::New(env_, browseResult.getAddress()));
-  result.Set("interface", Napi::Number::New(env_, browseResult.getInterface()));
+  result.Set(
+      "interfaceIndex", Napi::Number::New(env_, browseResult.getInterface()));
   result.Set("txtRecords", fromTxtRecords(browseResult.getTxtRecords()));
+  result.Set("port", Napi::Number::New(env_, browseResult.getPort()));
   result.Freeze();
   return result;
 }
@@ -133,15 +135,10 @@ void BrowseContext::setHandle(std::shared_ptr<void> handle)
 void BrowseContext::cleanup(const Napi::CallbackInfo &info)
 {
   BrowseContext *ctx = reinterpret_cast<BrowseContext *>(info.Data());
-  std::cerr << "cleanup called." << std::endl;
   ctx->handle_ = nullptr;
   ctx->resultCache_.clear();
 }
-void BrowseContext::finalizer(Napi::Env env, BrowseContext *ctx)
-{
-  std::cerr << "finalized." << std::endl;
-  delete ctx;
-}
+void BrowseContext::finalizer(Napi::Env env, BrowseContext *ctx) { delete ctx; }
 
 class MdnsBrowseAddon : public Napi::Addon<MdnsBrowseAddon>
 {
@@ -211,6 +208,15 @@ private:
       if (tmp.IsString())
       {
         domain = tmp.As<Napi::String>().Utf8Value();
+      }
+    }
+
+    {
+      Napi::Value tmp = options.Get("interfaceIndex");
+
+      if (tmp.IsNumber())
+      {
+        interfaceIndex = tmp.As<Napi::Number>().Uint32Value();
       }
     }
 

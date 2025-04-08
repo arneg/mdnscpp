@@ -139,7 +139,7 @@ namespace mdnscpp
       txtRecords_ = parseTxtRecords(txtRecord, txtLen);
 
       getaddrinfo_ = std::make_shared<DnsSdGetAddrInfo>(
-          shared_from_this(), interfaceIndexIndex, hosttarget);
+          shared_from_this(), interfaceIndexIndex, hosttarget, htons(port));
 
       close();
     }

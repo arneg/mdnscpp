@@ -51,13 +51,15 @@ namespace mdnscpp
 
     IPProtocol getIPProtocol() const;
 
+    uint16_t getPort() const;
+
     bool operator==(const BrowseResult &other) const;
     bool operator!=(const BrowseResult &other) const;
 
     BrowseResult(std::vector<TxtRecord> txtRecords, std::string type,
         std::string protocol, std::string name, std::string domain,
         std::string hostname, std::string address, size_t interfaceIndex,
-        IPProtocol ipProtocol);
+        IPProtocol ipProtocol, uint16_t port);
 
     /**
      * Returns true if this result is less than (i.e. ordered before) the result.
@@ -75,5 +77,6 @@ namespace mdnscpp
     std::string fullname_;
     size_t interfaceIndex_;
     IPProtocol ipProtocol_;
+    uint16_t port_;
   };
 } // namespace mdnscpp
