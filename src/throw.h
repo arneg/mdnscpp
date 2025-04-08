@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cassert>
+
 #ifdef __cpp_exceptions
 #  include <stdexcept>
 #elif !defined(NDEBUG)
-#  include <cassert>
 #else
 #  include <exception>
 #endif
@@ -26,4 +27,12 @@
     {                                                                          \
       std::terminate();                                                        \
     } while (0);
+#endif
+
+#define MDNSCPP_ASSERT(X) assert(X)
+
+#ifdef NDEBUG
+#  define MDNSCPP_DEBUG_ASSERT(X) assert(X)
+#else
+#  define MDNSCPP_DEBUG_ASSERT(X)
 #endif

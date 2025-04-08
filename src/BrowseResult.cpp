@@ -19,6 +19,7 @@ namespace mdnscpp
 
   size_t BrowseResult::getInterface() const { return interfaceIndex_; }
   IPProtocol BrowseResult::getIPProtocol() const { return ipProtocol_; }
+  uint16_t BrowseResult::getPort() const { return port_; }
 
   std::string BrowseResult::describe() const
   {
@@ -75,8 +76,9 @@ namespace mdnscpp
   bool BrowseResult::operator<(const BrowseResult &b) const
   {
     return std::tie(fullname_, hostname_, interfaceIndex_, ipProtocol_,
-               address_) < std::tie(b.fullname_, b.hostname_, b.interfaceIndex_,
-                               b.ipProtocol_, b.address_);
+               address_, port_) < std::tie(b.fullname_, b.hostname_,
+                                      b.interfaceIndex_, b.ipProtocol_,
+                                      b.address_, b.port_);
   }
 
   bool BrowseResult::operator==(const BrowseResult &other) const
@@ -89,7 +91,8 @@ namespace mdnscpp
            getAddress() == other.getAddress() &&
            getInterface() == other.getInterface() &&
            getIPProtocol() == other.getIPProtocol() &&
-           getTxtRecords() == other.getTxtRecords();
+           getTxtRecords() == other.getTxtRecords() &&
+           getPort() == other.getPort();
   }
 
   bool BrowseResult::operator!=(const BrowseResult &other) const
@@ -100,12 +103,12 @@ namespace mdnscpp
   BrowseResult::BrowseResult(std::vector<TxtRecord> txtRecords,
       std::string type, std::string protocol, std::string name,
       std::string domain, std::string hostname, std::string address,
-      size_t interfaceIndex, IPProtocol ipProtocol)
+      size_t interfaceIndex, IPProtocol ipProtocol, uint16_t port)
       : txtRecords_(std::move(txtRecords)), type_(std::move(type)),
         protocol_(std::move(protocol)), name_(std::move(name)),
         domain_(std::move(domain)), hostname_(std::move(hostname)),
         address_(std::move(address)), interfaceIndex_(interfaceIndex),
-        ipProtocol_(ipProtocol)
+        ipProtocol_(ipProtocol), port_(port)
   {
     fullname_ = name_ + "." + type_ + "." + protocol_ + "." + domain;
   }

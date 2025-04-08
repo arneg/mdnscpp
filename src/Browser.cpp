@@ -18,11 +18,7 @@ namespace mdnscpp
     {
     }
 
-    ~ResultRemovalContext()
-    {
-      // remove result
-      browser_->removeResult(result_);
-    }
+    ~ResultRemovalContext() { browser_->removeResult(result_); }
   };
 
   Browser::Browser(const std::string &type, const std::string &protocol,
@@ -59,25 +55,17 @@ namespace mdnscpp
 
   void Browser::insertResult(std::shared_ptr<BrowseResult> result)
   {
-#ifdef __cpp_exception
-    if (results_.find(result) != results_.end())
-    {
-      throw std::logic_error("Result already found. Unexpected.");
-    }
-#endif
 
+    MDNSCPP_DEBUG_ASSERT(results_.find(result) != results_.end());
     results_.insert(result);
     notifyResultsChanged();
   }
 
   void Browser::removeResult(std::shared_ptr<BrowseResult> result)
   {
-#ifdef __cpp_exception
-    if (results_.erase(result) != 1)
-    {
-      throw std::logic_error("Entry not found.");
-    }
-#endif
+    auto count = results_.erase(result);
+
+    MDNSCPP_ASSERT(count == 1);
     notifyResultsChanged();
   }
 
