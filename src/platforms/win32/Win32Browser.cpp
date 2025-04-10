@@ -7,6 +7,7 @@
 #include "../../debug.h"
 #include <cwchar>
 #include <stdexcept>
+#include <string_view>
 
 #include "dnsTypeToString.h"
 #include "fromWideString.h"
@@ -70,6 +71,8 @@ namespace mdnscpp
   void Win32Browser::DnsQueryCompletionRoutine(
       void *pQueryContext, DNS_QUERY_RESULT *queryResults)
   {
+    MDNSCPP_INFO << "DnsQueryCompletionRoutine " << queryResults->QueryStatus
+                 << MDNSCPP_ENDL;
     DNS_RECORD *records = queryResults->pQueryRecords;
 
     Win32Browser *browser = reinterpret_cast<Win32Browser *>(pQueryContext);
@@ -88,13 +91,16 @@ namespace mdnscpp
       size_t interfaceIndex, IPProtocol ipProtocol)
       : Browser(type, protocol, onResultsChanged,
             domain.size() ? domain : defaultDomain, interfaceIndex, ipProtocol),
-        queue_(platform->getEventLoop()), platform_(platform)
+        queue_(platform->getEventLoop()), platform_(platform),
+        queryName_(getType() + "." + getProtocol() + "." + getDomain())
   {
     MDNSCPP_INFO << describe() << MDNSCPP_ENDL;
     DNS_SERVICE_BROWSE_REQUEST request;
 
-    auto queryName =
-        toWideString(getType() + "." + getProtocol() + "." + getDomain());
+    auto queryName = toWideString(queryName_);
+
+    MDNSCPP_INFO << "queryName.size() == " << queryName.size() << MDNSCPP_ENDL;
+    MDNSCPP_INFO << "browse for:" << fromWideString(queryName) << MDNSCPP_ENDL;
 
     request.Version = 2; /*DNS_QUERY_REQUEST_VERSION2;*/
     request.InterfaceIndex = static_cast<unsigned long>(interfaceIndex);
@@ -113,12 +119,13 @@ namespace mdnscpp
 
   Win32Browser::~Win32Browser()
   {
-    MDNSCPP_INFO << "~Win32Browser()" << MDNSCPP_ENDL;
+    MDNSCPP_INFO << "~Win32Browser() start" << MDNSCPP_ENDL;
     auto status = DnsServiceBrowseCancel(&cancel_);
     if (status != ERROR_SUCCESS)
     {
       MDNSCPP_ERROR << "DnsServiceBrowseCancel() failed" << MDNSCPP_ENDL;
     }
+    MDNSCPP_INFO << "~Win32Browser() done" << MDNSCPP_ENDL;
   }
 
   std::string Win32Browser::describe() const
@@ -135,14 +142,38 @@ namespace mdnscpp
     return result;
   }
 
+  std::string Win32Browser::stripQueryName(std::string fullname) const
+  {
+    MDNSCPP_INFO << "stripQueryName(" << fullname
+                 << ") queryName: " << queryName_ << MDNSCPP_ENDL;
+    if (fullname.size() < queryName_.size() + 1)
+    {
+      return "";
+    }
+
+    size_t nameLength = fullname.size() - queryName_.size() - 1;
+
+    std::string_view end{fullname};
+
+    end.remove_prefix(nameLength + 1);
+
+    if (end != queryName_)
+    {
+      MDNSCPP_INFO << "end: " << end << MDNSCPP_ENDL;
+      return "";
+    }
+
+    fullname.resize(nameLength);
+
+    return fullname;
+  }
+
   void Win32Browser::onBrowseResult(Win32BrowseResult result)
   {
     if (!result.queryName.size())
       return;
 
     queue_.schedule([result = std::move(result), this]() {
-      auto shared_this =
-          std::static_pointer_cast<Win32Browser>(getSharedFromThis());
       auto it = resolves_.find(result.queryName);
 
       if (true || result.ttl)
@@ -150,9 +181,9 @@ namespace mdnscpp
         if (it == resolves_.end())
         {
           it = resolves_
-                   .insert(
-                       {result.queryName, std::make_shared<Win32Resolve>(
-                                              shared_this, result.queryName)})
+                   .insert({result.queryName,
+                       std::make_shared<Win32Resolve>(*this, result.queryName,
+                           stripQueryName(result.queryName))})
                    .first;
         }
         it->second->refresh(result.ttl);

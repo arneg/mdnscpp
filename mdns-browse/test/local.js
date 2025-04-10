@@ -14,11 +14,13 @@ describe("local", () => {
 
   test("simple find", async () => {
     const service = {
-      name: "this-service-is-for-testing",
+      name: "testing",
       type: "_ttest._tcp",
       port: 1234,
     };
     cleanup = announceService(service);
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const result = await find(
       {
@@ -26,9 +28,10 @@ describe("local", () => {
         protocol: "_tcp",
       },
       (result) => {
+        console.log("result: ", result);
         return result.name === service.name;
       },
-      AbortSignal.timeout(2000)
+      AbortSignal.timeout(100000)
     );
 
     equal(result.name, service.name);

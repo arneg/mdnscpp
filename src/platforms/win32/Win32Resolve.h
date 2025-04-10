@@ -25,7 +25,8 @@ namespace mdnscpp
     };
 
   public:
-    Win32Resolve(std::shared_ptr<Win32Browser> browser, std::string queryName);
+    Win32Resolve(
+        Win32Browser &browser, std::string queryName, std::string name);
     ~Win32Resolve();
 
     void refresh(uint32_t ttl);
@@ -42,9 +43,10 @@ namespace mdnscpp
     void updateResult(std::shared_ptr<BrowseResult> &slot,
         std::shared_ptr<BrowseResult> result);
 
-    std::shared_ptr<Win32Browser> browser_;
+    Win32Browser &browser_;
     CallQueue queue_;
     std::string queryName_;
+    std::string name_;
     DNS_SERVICE_CANCEL cancel_;
     std::shared_ptr<BrowseResult> ip4Result_, ip6Result_;
     uint64_t updateTime_;

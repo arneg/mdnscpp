@@ -22,7 +22,8 @@
         "<!@(node -p \"require('get-uv-event-loop-napi-h').include\")"
       ],
       "defines": [
-        "NAPI_DISABLE_CPP_EXCEPTIONS"
+        "NAPI_DISABLE_CPP_EXCEPTIONS",
+        "MDNSCPP_ENABLE_VERBOSE_DEBUG"
       ],
       "conditions": [
         [
@@ -65,10 +66,13 @@
               "src/mdnscpp/src/platforms/win32/toWideString.cpp"
             ],
             "defines": [
-              "LIBMDNS_PLATFORM_WIN32"
+              "LIBMDNS_PLATFORM_WIN32",
+              "UNICODE",
+              "_UNICODE"
             ],
             "libraries": [
-              "dnsapi.dll"
+              "dnsapi.lib",
+              "Ws2_32.lib"
             ]
           }
         ]

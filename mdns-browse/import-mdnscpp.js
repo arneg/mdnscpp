@@ -1,4 +1,4 @@
-import { join, dirname, resolve, relative } from "node:path";
+import { join, dirname, resolve, relative, posix, sep } from "node:path";
 import {
   copyFile,
   mkdir,
@@ -52,6 +52,14 @@ function cppOnly(files) {
   return files.filter((file) => file.endsWith(".cpp"));
 }
 
+function canonicalPaths(paths) {
+  paths = paths.map((path) => {
+    return posix.join(...path.split(sep));
+  });
+  paths.sort();
+  return paths;
+}
+
 const win32Sources = allSources.filter((file) => file.includes("win32"));
 const macosSources = allSources.filter((file) => file.includes("dns_sd"));
 const linuxSources = allSources.filter((file) => file.includes("avahi"));
@@ -59,13 +67,18 @@ const commonSources = allSources.filter((file) => !file.includes("platform"));
 
 const binding = JSON.parse(await readFile("binding.gyp", { encoding: "utf8" }));
 
-binding.targets[0].sources = ["src/mdns-browse.cpp", ...cppOnly(commonSources)];
+binding.targets[0].sources = canonicalPaths([
+  "src/mdns-browse.cpp",
+  ...cppOnly(commonSources),
+]);
 
 binding.targets[0].conditions.forEach(([condition, settings]) => {
-  if (condition.includes('OS=="mac"')) settings.sources = cppOnly(macosSources);
+  if (condition.includes('OS=="mac"'))
+    settings.sources = canonicalPaths(cppOnly(macosSources));
   if (condition.includes('OS=="linux"'))
-    settings.sources = cppOnly(linuxSources);
-  if (condition.includes('OS=="win"')) settings.sources = cppOnly(win32Sources);
+    settings.sources = canonicalPaths(cppOnly(linuxSources));
+  if (condition.includes('OS=="win"'))
+    settings.sources = canonicalPaths(cppOnly(win32Sources));
 });
 
 await writeFile("binding.gyp", JSON.stringify(binding, undefined, 2), {

@@ -54,10 +54,12 @@ namespace mdnscpp
         void *pQueryContext, DNS_QUERY_RESULT *queryResults);
 
     void onBrowseResult(Win32BrowseResult result);
+    std::string stripQueryName(std::string fullname) const;
 
     CallQueue queue_;
     DNS_SERVICE_CANCEL cancel_;
     std::unordered_map<std::string, std::shared_ptr<Win32Resolve>> resolves_;
     std::shared_ptr<Win32Platform> platform_;
+    std::string queryName_;
   };
 } // namespace mdnscpp

@@ -6,9 +6,11 @@
     ".": "./index.js"
   },
   "scripts": {
-    "test": "node --test test/*.js",
+    "test": "node --test test",
     "import": "node import-mdnscpp.js",
-    "build": "node-gyp build"
+    "clean": "node-gyp clean",
+    "prebuild": "node-gyp configure",
+    "build": "node-gyp build --no-binray-cache"
   },
   "keywords": [
     "mdns",

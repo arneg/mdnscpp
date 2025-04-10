@@ -32,6 +32,8 @@ target_sources(libmdnscpp PRIVATE
   src/throw.h
 )
 
+target_compile_definitions(libmdnscpp PRIVATE MDNSCPP_ENABLE_VERBOSE_DEBUG)
+
 find_library(LIB_DNS_SD NAMES dns_sd)
 find_library(LIB_AVAHI NAMES avahi-client)
 
@@ -101,8 +103,10 @@ elseif(WIN32)
     src/platforms/win32/Win32Resolve.cpp
     src/platforms/win32/Win32Resolve.h
   )
-  target_link_libraries(libmdnscpp PUBLIC dnsapi.dll)
+  target_link_libraries(libmdnscpp PUBLIC dnsapi.dll Ws2_32.dll)
   target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_PLATFORM_WIN32)
+  target_compile_definitions(libmdnscpp PRIVATE UNICODE)
+  target_compile_definitions(libmdnscpp PRIVATE _UNICODE)
 else()
   message(FATAL_ERROR "No platform support found.")
 endif()
