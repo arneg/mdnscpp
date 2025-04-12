@@ -27,6 +27,8 @@ namespace mdnscpp
 
   private:
     class LibuvWatch;
+    class LibuvTimeout;
+
     class LibuvPoll
     {
     public:
@@ -40,6 +42,20 @@ namespace mdnscpp
       LibuvWatch *watch_;
       uv_poll_t uv_poll_;
       int fd_;
+    };
+
+    class LibuvTimer
+    {
+    public:
+      LibuvTimer(LibuvTimeout *timeout);
+      void start(uint64_t timeout);
+      void stop();
+      void close();
+      void timerCallback();
+
+    private:
+      LibuvTimeout *timeout_;
+      uv_timer_t uv_timer_;
     };
 
     class LibuvWatch : public Watch
@@ -66,8 +82,11 @@ namespace mdnscpp
       void update(TimeoutState state) override;
       void notify();
 
+      uv_loop_t *getUvLoop() const;
+
     private:
       LibuvLoop &loop_;
+      LibuvTimer *timer_;
       struct timeval time_;
 
       void install();

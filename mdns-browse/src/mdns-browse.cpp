@@ -1,5 +1,6 @@
 #include <uv.h>
 
+#include "mdnscpp/src/debug.h"
 #include <get-uv-event-loop-napi.h>
 #include <iostream>
 #include <mdnscpp/LibuvLoop.h>
@@ -125,6 +126,7 @@ void BrowseContext::onResultsChanged(std::shared_ptr<mdnscpp::Browser> browser)
     resultCache_.erase(entry);
 
   callbackRef_.MakeCallback(env_.Global(), {std::move(results)}, asyncCtx_);
+  MDNSCPP_INFO << "returned to onResultsChanged" << MDNSCPP_ENDL;
 }
 
 void BrowseContext::setHandle(std::shared_ptr<void> handle)
@@ -134,11 +136,17 @@ void BrowseContext::setHandle(std::shared_ptr<void> handle)
 
 void BrowseContext::cleanup(const Napi::CallbackInfo &info)
 {
+  MDNSCPP_INFO << "BrowseContext::cleanup()" << MDNSCPP_ENDL;
   BrowseContext *ctx = reinterpret_cast<BrowseContext *>(info.Data());
   ctx->handle_ = nullptr;
   ctx->resultCache_.clear();
+  MDNSCPP_INFO << "BrowseContext::cleanup() done" << MDNSCPP_ENDL;
 }
-void BrowseContext::finalizer(Napi::Env env, BrowseContext *ctx) { delete ctx; }
+void BrowseContext::finalizer(Napi::Env env, BrowseContext *ctx)
+{
+  MDNSCPP_INFO << "BrowseContext::finalizer()" << MDNSCPP_ENDL;
+  delete ctx;
+}
 
 class MdnsBrowseAddon : public Napi::Addon<MdnsBrowseAddon>
 {
@@ -147,6 +155,7 @@ public:
       : eventLoop_{get_uv_event_loop(env)},
         platform_{mdnscpp::createPlatform(eventLoop_)}
   {
+    MDNSCPP_INFO << "MdnsBrowseAddon()" << MDNSCPP_ENDL;
     // In the constructor we declare the functions the add-on makes available
     // to JavaScript.
     DefineAddon(exports,
@@ -154,6 +163,8 @@ public:
             InstanceMethod("startBrowse", &MdnsBrowseAddon::startBrowse),
         });
   }
+
+  ~MdnsBrowseAddon() { MDNSCPP_INFO << "~MdnsBrowseAddon()" << MDNSCPP_ENDL; }
 
 private:
   Napi::Value startBrowse(const Napi::CallbackInfo &info)
@@ -260,6 +271,6 @@ private:
   std::shared_ptr<mdnscpp::Platform> platform_;
 };
 
-// The macro announces that instances of the class `ExampleAddon` will be
+// The macro announces that instances of the class `MdnsBrowseAddon` will be
 // created for each instance of the add-on that must be loaded into Node.js.
 NODE_API_ADDON(MdnsBrowseAddon)

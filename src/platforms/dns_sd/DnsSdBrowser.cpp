@@ -25,6 +25,8 @@ namespace mdnscpp
   DnsSdBrowser::~DnsSdBrowser()
   {
     MDNSCPP_INFO << "~DnsSdBrowser()" << MDNSCPP_ENDL;
+    onResultsChanged_ = nullptr;
+    resolves_.clear();
   }
 
   std::string DnsSdBrowser::describe() const

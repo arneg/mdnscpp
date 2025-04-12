@@ -38,7 +38,7 @@ namespace mdnscpp
     std::unordered_set<std::shared_ptr<BrowseResult>> results_;
     const std::string type_;
     const std::string protocol_;
-    const ResultsChangedCallback onResultsChanged_;
+    ResultsChangedCallback onResultsChanged_;
     const std::string domain_;
     const size_t interfaceIndex_;
     const IPProtocol ipProtocol_;

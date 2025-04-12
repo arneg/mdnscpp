@@ -92,19 +92,28 @@ namespace mdnscpp
       : Browser(type, protocol, onResultsChanged,
             domain.size() ? domain : defaultDomain, interfaceIndex, ipProtocol),
         queue_(platform->getEventLoop()), platform_(platform),
-        queryName_(getType() + "." + getProtocol() + "." + getDomain())
+        queryName_(getType() + "." + getProtocol() + "." + getDomain()),
+        wqueryName_(toWideString(queryName_)),
+        refreshTimer_(
+            platform->getEventLoop().createTimeout(EventLoop::TimeoutDisabled{},
+                [&](EventLoop::Timeout &) { refresh(); })),
+        interfaceIndex_(interfaceIndex)
   {
     MDNSCPP_INFO << describe() << MDNSCPP_ENDL;
+
+    refresh();
+  }
+
+  void Win32Browser::refresh()
+  {
+    MDNSCPP_INFO << describe() << ".refresh()" << MDNSCPP_ENDL;
+    cancel();
+
     DNS_SERVICE_BROWSE_REQUEST request;
 
-    auto queryName = toWideString(queryName_);
-
-    MDNSCPP_INFO << "queryName.size() == " << queryName.size() << MDNSCPP_ENDL;
-    MDNSCPP_INFO << "browse for:" << fromWideString(queryName) << MDNSCPP_ENDL;
-
     request.Version = 2; /*DNS_QUERY_REQUEST_VERSION2;*/
-    request.InterfaceIndex = static_cast<unsigned long>(interfaceIndex);
-    request.QueryName = queryName.c_str();
+    request.InterfaceIndex = static_cast<unsigned long>(interfaceIndex_);
+    request.QueryName = wqueryName_.c_str();
     request.pQueryContext = this;
     request.pBrowseCallbackV2 = DnsQueryCompletionRoutine;
 
@@ -112,19 +121,42 @@ namespace mdnscpp
 
     if (status != DNS_REQUEST_PENDING)
     {
+      state_ = State::FAILED;
       MDNSCPP_ERROR << describe() << ": failed." << MDNSCPP_ENDL;
-      MDNSCPP_THROW(std::runtime_error, "DnsServiceBrowse failed.");
     }
+    else
+    {
+      state_ = State::PENDING;
+      MDNSCPP_INFO << describe() << ": browse started." << MDNSCPP_ENDL;
+    }
+
+    struct timeval time{};
+    time.tv_sec = 10;
+    refreshTimer_->update(EventLoop::TimeoutRelative{time});
+  }
+
+  void Win32Browser::cancel()
+  {
+    if (state_ != State::PENDING)
+      return;
+
+    MDNSCPP_INFO << describe() << ".cancel()" << MDNSCPP_ENDL;
+
+    auto status = DnsServiceBrowseCancel(&cancel_);
+
+    if (status != ERROR_SUCCESS)
+    {
+      MDNSCPP_ERROR << "DnsServiceBrowseCancel() failed" << MDNSCPP_ENDL;
+    }
+    state_ = State::INIT;
   }
 
   Win32Browser::~Win32Browser()
   {
     MDNSCPP_INFO << "~Win32Browser() start" << MDNSCPP_ENDL;
-    auto status = DnsServiceBrowseCancel(&cancel_);
-    if (status != ERROR_SUCCESS)
-    {
-      MDNSCPP_ERROR << "DnsServiceBrowseCancel() failed" << MDNSCPP_ENDL;
-    }
+    onResultsChanged_ = nullptr;
+    cancel();
+    resolves_.clear();
     MDNSCPP_INFO << "~Win32Browser() done" << MDNSCPP_ENDL;
   }
 

@@ -6,11 +6,11 @@
     ".": "./index.js"
   },
   "scripts": {
-    "test": "node --test test",
+    "test": "node --test --test-concurrency 1",
     "import": "node import-mdnscpp.js",
     "clean": "node-gyp clean",
     "prebuild": "node-gyp configure",
-    "build": "node-gyp build --no-binray-cache"
+    "build": "node-gyp build"
   },
   "keywords": [
     "mdns",

@@ -35,6 +35,13 @@ namespace mdnscpp
   class Win32Browser : public Browser,
                        public std::enable_shared_from_this<Win32Browser>
   {
+    enum class State : uint8_t
+    {
+      INIT,
+      PENDING,
+      FAILED,
+    };
+
   public:
     Win32Browser(std::shared_ptr<Win32Platform> platform,
         const std::string &type, const std::string &protocol,
@@ -45,6 +52,8 @@ namespace mdnscpp
 
     std::string describe() const;
     std::shared_ptr<Win32Platform> getPlatform() const;
+    void refresh();
+    void cancel();
 
   protected:
     std::shared_ptr<Browser> getSharedFromThis() override;
@@ -61,5 +70,9 @@ namespace mdnscpp
     std::unordered_map<std::string, std::shared_ptr<Win32Resolve>> resolves_;
     std::shared_ptr<Win32Platform> platform_;
     std::string queryName_;
+    std::wstring wqueryName_;
+    std::shared_ptr<EventLoop::Timeout> refreshTimer_;
+    size_t interfaceIndex_;
+    State state_ = State::INIT;
   };
 } // namespace mdnscpp

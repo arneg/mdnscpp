@@ -61,7 +61,7 @@ namespace mdnscpp
   std::shared_ptr<EventLoop::Timeout> LibuvLoop::createTimeout(
       TimeoutState state, Timeout::Callback callback)
   {
-    return nullptr;
+    return std::make_shared<LibuvTimeout>(*this, state, callback);
   }
 
   uint64_t LibuvLoop::now() const { return uv_now(uv_loop_); }
@@ -127,6 +127,44 @@ namespace mdnscpp
   }
 
   /**
+   * LibuvTimer
+   */
+
+  LibuvLoop::LibuvTimer::LibuvTimer(LibuvTimeout *timeout) : timeout_(timeout)
+  {
+    uv_timer_init(timeout->getUvLoop(), &uv_timer_);
+    uv_handle_set_data(reinterpret_cast<uv_handle_t *>(&uv_timer_), this);
+  }
+
+  void LibuvLoop::LibuvTimer::start(uint64_t timeout)
+  {
+    MDNSCPP_INFO << "LibuvTimer::start(" << timeout << ")" << MDNSCPP_ENDL;
+    uv_timer_start(
+        &uv_timer_,
+        [](uv_timer_t *handle) {
+          LibuvTimer *self = reinterpret_cast<LibuvTimer *>(handle->data);
+          self->timerCallback();
+        },
+        timeout, 0);
+  }
+  void LibuvLoop::LibuvTimer::stop() { uv_timer_stop(&uv_timer_); }
+  void LibuvLoop::LibuvTimer::close()
+  {
+    assert(timeout_);
+    timeout_ = nullptr;
+    stop();
+    uv_close(
+        reinterpret_cast<uv_handle_t *>(&uv_timer_), [](uv_handle_t *handle) {
+          delete reinterpret_cast<LibuvTimer *>(handle->data);
+        });
+  }
+  void LibuvLoop::LibuvTimer::timerCallback()
+  {
+    if (timeout_)
+      timeout_->notify();
+  }
+
+  /**
    * LibuvWatch
    */
 
@@ -163,12 +201,17 @@ namespace mdnscpp
 
   LibuvLoop::LibuvTimeout::LibuvTimeout(
       LibuvLoop &loop, TimeoutState state, Callback callback)
-      : Timeout(state, callback), loop_(loop), time_{0, 0}
+      : Timeout(state, callback), loop_(loop), time_{0, 0},
+        timer_(new LibuvTimer(this))
   {
     install();
   }
 
-  LibuvLoop::LibuvTimeout::~LibuvTimeout() { uninstall(); }
+  LibuvLoop::LibuvTimeout::~LibuvTimeout()
+  {
+    uninstall();
+    timer_->close();
+  }
 
   void LibuvLoop::LibuvTimeout::LibuvTimeout::update(TimeoutState state)
   {
@@ -177,16 +220,42 @@ namespace mdnscpp
     install();
   }
 
+  uv_loop_t *LibuvLoop::LibuvTimeout::getUvLoop() const
+  {
+    return loop_.getUvLoop();
+  }
+
   void LibuvLoop::LibuvTimeout::install()
   {
     if (std::holds_alternative<EventLoop::TimeoutDisabled>(state_))
       return;
+
+    struct timeval relativeTime;
+    uint64_t milliseconds;
+
+    MDNSCPP_ASSERT(std::holds_alternative<EventLoop::TimeoutRelative>(state_));
+
+    if (std::holds_alternative<EventLoop::TimeoutRelative>(state_))
+    {
+      relativeTime = std::get<EventLoop::TimeoutRelative>(state_).time;
+    }
+    else
+    {
+      // TODO
+    }
+
+    milliseconds = relativeTime.tv_sec * 1000;
+    milliseconds += relativeTime.tv_usec / 1000;
+
+    timer_->start(milliseconds);
   }
 
   void LibuvLoop::LibuvTimeout::uninstall()
   {
     if (std::holds_alternative<EventLoop::TimeoutDisabled>(state_))
       return;
+
+    timer_->stop();
   }
 
   void LibuvLoop::LibuvTimeout::notify() { Timeout::notify(); }

@@ -58,7 +58,6 @@ namespace mdnscpp
         MDNSCPP_INFO << "Resolve is still pending for less than "
                      << pendingRetryInterval << ". Retry later."
                      << MDNSCPP_ENDL;
-        SleepEx(100, TRUE);
         return;
       }
 
