@@ -12,6 +12,16 @@
 
 static constexpr uint64_t pendingRetryInterval = 5 * 1000;
 
+// Time in ms after the ttl expires for which we keep the result
+// around.
+static constexpr uint64_t pendingStaleInterval = 5 * 1000;
+
+static constexpr uint16_t minimumRefreshInterval = 30 * 1000;
+
+// Time in ms after the ttl expires for which we keep trying to
+// resolve the service.
+static constexpr uint16_t pendingRemovalInterval = 10 * 1000;
+
 namespace mdnscpp
 {
 
@@ -20,62 +30,91 @@ namespace mdnscpp
       : browser_(browser), queryName_(queryName),
         queue_(browser_.getPlatform()->getEventLoop()), name_(name)
   {
-    MDNSCPP_INFO << "Win32Resolve(" << browser_.describe() << ", " << queryName
-                 << ")" << MDNSCPP_ENDL;
+    MDNSCPP_INFO << describe() << MDNSCPP_ENDL;
   }
 
-  void Win32Resolve::resetUpdateTime()
+  std::string Win32Resolve::describe() const
   {
-    updateTime_ = browser_.getPlatform()->getEventLoop().now();
+    std::string result = "Win32Resolve(";
+    result += browser_.describe();
+    result += ", ";
+    result += queryName_;
+    result += ")";
+    return result;
   }
 
-  uint64_t Win32Resolve::age() const
+  void Win32Resolve::resetResultTime() { resultTime_ = now(); }
+
+  void Win32Resolve::resetResolveTime() { resolveTime_ = now(); }
+
+  uint64_t Win32Resolve::now() const
   {
-    return browser_.getPlatform()->getEventLoop().now() - updateTime_;
+    return browser_.getPlatform()->getEventLoop().now();
   }
+
+  uint64_t Win32Resolve::resolveAge() const { return now() - resolveTime_; }
+
+  uint64_t Win32Resolve::resultAge() const { return now() - resultTime_; }
+
+  bool Win32Resolve::hasResult() const { return ip4Result_ || ip6Result_; }
 
   bool Win32Resolve::isFresh() const
   {
-    if (state_ != State::DONE)
-    {
+
+    if (!ip4Result_ && !ip6Result_)
       return false;
-    }
 
-    auto ageInSeconds = age() / 1000;
-
-    return ageInSeconds < ttl_ / 2;
+    return now() < ttlTime_ && resultAge() < minimumRefreshInterval;
   }
+
+  bool Win32Resolve::isStale() const
+  {
+    return ttlTime_ + pendingStaleInterval < now();
+  }
+
+  bool Win32Resolve::isGone() const
+  {
+    return ttlTime_ + pendingRemovalInterval < now();
+  }
+
+  void Win32Resolve::resetTtl(uint32_t ttl) { ttlTime_ = now() + ttl * 1000; }
 
   void Win32Resolve::refresh(uint32_t ttl)
   {
-    MDNSCPP_INFO << "Win32Resolve(" << queryName_ << ").refresh(" << ttl << ")"
-                 << "age: " << age() << MDNSCPP_ENDL;
+    MDNSCPP_INFO << describe() << ".refresh(" << ttl << ")"
+                 << " age: " << (hasResult() ? resultAge() : 0) << MDNSCPP_ENDL;
+
+    if (ttl)
+      resetTtl(ttl);
+
+    if (isFresh())
+    {
+      MDNSCPP_INFO << describe() << " Result is still fresh." << MDNSCPP_ENDL;
+      return;
+    }
 
     if (state_ == State::PENDING)
     {
-      if (age() < pendingRetryInterval)
+      if (resolveAge() < pendingRetryInterval)
       {
-        MDNSCPP_INFO << "Resolve is still pending for less than "
+        MDNSCPP_INFO << describe() << " Resolve is still pending for less than "
                      << pendingRetryInterval << ". Retry later."
                      << MDNSCPP_ENDL;
         return;
       }
 
       cancel();
+
+      if (isStale())
+      {
+        updateResult(ip4Result_, nullptr);
+        updateResult(ip6Result_, nullptr);
+      }
     }
 
-    ttl_ = (std::min)(ttl_, ttl);
-
-    if (isFresh())
-    {
-      MDNSCPP_INFO << "Result is still fresh." << MDNSCPP_ENDL;
-      return;
-    }
-
-    ttl_ = ttl;
     state_ = State::PENDING;
-    resetUpdateTime();
-    MDNSCPP_INFO << "Calling DnsServiceResolve." << MDNSCPP_ENDL;
+    resetResolveTime();
+    MDNSCPP_INFO << describe() << " Calling DnsServiceResolve." << MDNSCPP_ENDL;
 
     DNS_SERVICE_RESOLVE_REQUEST request;
 
@@ -92,7 +131,8 @@ namespace mdnscpp
 
     if (status != DNS_REQUEST_PENDING)
     {
-      MDNSCPP_INFO << "DnsServiceResolve failed." << MDNSCPP_ENDL;
+      MDNSCPP_INFO << describe() << " DnsServiceResolve failed."
+                   << MDNSCPP_ENDL;
       state_ = State::FAILED;
     }
   }
@@ -104,7 +144,8 @@ namespace mdnscpp
       return;
     if (slot && result && *slot == *result)
     {
-      MDNSCPP_INFO << "Result unchanged. Skipping update." << MDNSCPP_ENDL;
+      MDNSCPP_INFO << describe() << " Result unchanged. Skipping update."
+                   << MDNSCPP_ENDL;
       return;
     }
 
@@ -139,12 +180,13 @@ namespace mdnscpp
 
     if (instanceName != queryName_)
     {
-      MDNSCPP_INFO << "instanceName " << instanceName
+      MDNSCPP_INFO << describe() << " instanceName " << instanceName
                    << " does not match the queryName " << queryName_
                    << MDNSCPP_ENDL;
       return;
     }
 
+    txtRecords.reserve(pInstance->dwPropertyCount);
     for (DWORD i = 0; i < pInstance->dwPropertyCount; i++)
     {
       TxtRecord record;
@@ -162,16 +204,18 @@ namespace mdnscpp
       txtRecords.push_back(std::move(record));
     }
 
-    queue_.schedule([ipv4, ipv6, txtRecords, hostname, port, interfaceIndex,
+    queue_.schedule([ipv4, ipv6, txtRecords = std::move(txtRecords),
+                        hostname = std::move(hostname), port, interfaceIndex,
                         this]() {
       if (state_ != State::PENDING)
       {
-        MDNSCPP_INFO << "Got resolve result in unexpected state. ignoring."
+        MDNSCPP_INFO << describe()
+                     << "Got resolve result in unexpected state. ignoring."
                      << MDNSCPP_ENDL;
         return;
       }
 
-      resetUpdateTime();
+      resetResultTime();
       state_ = State::DONE;
 
       auto makeResult = [&](const IPAddress &ip) {
@@ -209,12 +253,9 @@ namespace mdnscpp
   {
     cancel();
 
-    MDNSCPP_INFO << "~Win32Resolve(" << browser_.describe() << ", "
-                 << queryName_ << ")" << MDNSCPP_ENDL;
+    MDNSCPP_INFO << "~" << describe() << MDNSCPP_ENDL;
 
-    if (ip4Result_)
-      browser_.removeResult(ip4Result_);
-    if (ip6Result_)
-      browser_.removeResult(ip6Result_);
+    updateResult(ip4Result_, nullptr);
+    updateResult(ip6Result_, nullptr);
   }
 } // namespace mdnscpp

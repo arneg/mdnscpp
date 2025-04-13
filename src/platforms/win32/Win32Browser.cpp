@@ -109,6 +109,22 @@ namespace mdnscpp
     MDNSCPP_INFO << describe() << ".refresh()" << MDNSCPP_ENDL;
     cancel();
 
+    for (auto it = resolves_.begin(); it != resolves_.end();)
+    {
+      auto &resolve = it->second;
+      if (resolve->isGone())
+      {
+        MDNSCPP_INFO << resolve->describe() << " is gone. removing."
+                     << MDNSCPP_ENDL;
+        it = resolves_.erase(it);
+      }
+      else
+      {
+        resolve->refresh();
+        it++;
+      }
+    }
+
     DNS_SERVICE_BROWSE_REQUEST request;
 
     request.Version = 2; /*DNS_QUERY_REQUEST_VERSION2;*/
@@ -208,7 +224,7 @@ namespace mdnscpp
     queue_.schedule([result = std::move(result), this]() {
       auto it = resolves_.find(result.queryName);
 
-      if (true || result.ttl)
+      if (result.ttl)
       {
         if (it == resolves_.end())
         {

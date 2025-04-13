@@ -29,7 +29,10 @@ namespace mdnscpp
         Win32Browser &browser, std::string queryName, std::string name);
     ~Win32Resolve();
 
-    void refresh(uint32_t ttl);
+    void refresh(uint32_t ttl = 0);
+    void resetTtl(uint32_t ttl);
+    bool isGone() const;
+    std::string describe() const;
 
   private:
     static void DnsServiceResolveComplete(
@@ -37,11 +40,16 @@ namespace mdnscpp
 
     void onResolveResult(PDNS_SERVICE_INSTANCE pInstance);
     void cancel();
-    uint64_t age() const;
-    void resetUpdateTime();
+    uint64_t resolveAge() const;
+    uint64_t resultAge() const;
+    void resetResultTime();
+    void resetResolveTime();
     bool isFresh() const;
+    bool isStale() const;
     void updateResult(std::shared_ptr<BrowseResult> &slot,
         std::shared_ptr<BrowseResult> result);
+    uint64_t now() const;
+    bool hasResult() const;
 
     Win32Browser &browser_;
     CallQueue queue_;
@@ -49,8 +57,7 @@ namespace mdnscpp
     std::string name_;
     DNS_SERVICE_CANCEL cancel_;
     std::shared_ptr<BrowseResult> ip4Result_, ip6Result_;
-    uint64_t updateTime_;
+    uint64_t resolveTime_ = 0, resultTime_ = 0, ttlTime_ = 0;
     State state_ = State::INIT;
-    uint32_t ttl_;
   };
 } // namespace mdnscpp
