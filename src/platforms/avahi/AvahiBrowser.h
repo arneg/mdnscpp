@@ -10,15 +10,19 @@ namespace mdnscpp
 {
   class AvahiPlatform;
 
-  class AvahiBrowser : public Browser
+  class AvahiBrowser : public Browser,
+                       public std::enable_shared_from_this<AvahiBrowser>
   {
   public:
     AvahiBrowser(std::shared_ptr<AvahiPlatform> platform,
         const std::string &type, const std::string &protocol,
-        std::function<void(const Browser &)> onResultsChanged,
-        const std::string &domain, size_t interfaceIndex);
+        ResultsChangedCallback onResultsChanged, const std::string &domain,
+        size_t interfaceIndex, IPProtocol ipProtocol);
 
     std::string describe() const;
+
+  protected:
+    std::shared_ptr<Browser> getSharedFromThis() override;
 
   private:
     AvahiServiceBrowser *avahiBrowser_;

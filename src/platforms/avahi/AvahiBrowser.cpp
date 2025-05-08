@@ -6,22 +6,43 @@
 
 namespace mdnscpp
 {
+  static AvahiProtocol toAvahiProtocol(IPProtocol ipProtocol)
+  {
+    switch (ipProtocol)
+    {
+    case IPProtocol::IPv4:
+      return AVAHI_PROTO_INET;
+    case IPProtocol::IPv6:
+      return AVAHI_PROTO_INET6;
+    default:
+      return AVAHI_PROTO_UNSPEC;
+    }
+  }
+
   AvahiBrowser::AvahiBrowser(std::shared_ptr<AvahiPlatform> platform,
       const std::string &type, const std::string &protocol,
-      std::function<void(const Browser &)> onResultsChanged,
-      const std::string &domain, size_t interfaceIndex)
-      : Browser(type, protocol, onResultsChanged, domain, interfaceIndex)
+      ResultsChangedCallback onResultsChanged, const std::string &domain,
+      size_t interfaceIndex, IPProtocol ipProtocol)
+      : Browser(type, protocol, onResultsChanged, domain, interfaceIndex,
+            ipProtocol)
   {
     std::string tmp = type + "." + protocol;
+    // TODO: translate interface index
     avahiBrowser_ = avahi_service_browser_new(platform->getAvahiClient(),
-        AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, tmp.c_str(), NULL,
-        static_cast<AvahiLookupFlags>(0), avahiServiceBrowserCallback, this);
+        AVAHI_IF_UNSPEC, toAvahiProtocol(ipProtocol), tmp.c_str(),
+        domain.size() ? domain.c_str() : NULL, static_cast<AvahiLookupFlags>(0),
+        avahiServiceBrowserCallback, this);
 
     if (!avahiBrowser_)
       MDNSCPP_THROW(
           std::runtime_error, "Failed to create avahi service browser.");
 
     MDNSCPP_INFO << describe() << " started" << MDNSCPP_ENDL;
+  }
+
+  std::shared_ptr<Browser> AvahiBrowser::getSharedFromThis()
+  {
+    return shared_from_this();
   }
 
   std::string AvahiBrowser::describe() const

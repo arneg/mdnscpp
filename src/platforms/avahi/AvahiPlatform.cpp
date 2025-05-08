@@ -89,11 +89,11 @@ namespace mdnscpp
 
   std::shared_ptr<Browser> AvahiPlatform::createBrowser(const std::string &type,
       const std::string &protocol,
-      std::function<void(const Browser &)> onResultsChanged,
-      const std::string &domain, size_t interfaceIndex)
+      Browser::ResultsChangedCallback onResultsChanged,
+      const std::string &domain, size_t interfaceIndex, IPProtocol ipProtocol)
   {
     return std::make_shared<AvahiBrowser>(shared_from_this(), type, protocol,
-        onResultsChanged, domain, interfaceIndex);
+        onResultsChanged, domain, interfaceIndex, ipProtocol);
   }
 
   AvahiClient *AvahiPlatform::getAvahiClient() const { return avahiClient_; }
