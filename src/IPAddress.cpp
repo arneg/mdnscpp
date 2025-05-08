@@ -3,6 +3,7 @@
 #include "sockAddrToString.h"
 #include "throw.h"
 
+#include <cstring>
 #include <stdexcept>
 
 namespace mdnscpp
