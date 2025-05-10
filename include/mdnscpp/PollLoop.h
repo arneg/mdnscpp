@@ -17,11 +17,13 @@ namespace mdnscpp
     bool runOnce();
     void run();
     ~PollLoop();
+    PollLoop();
     std::shared_ptr<Watch> createWatch(
         int fd, EventType events, Watch::Callback callback) override;
     std::shared_ptr<Timeout> createTimeout(
         TimeoutState state, Timeout::Callback callback) override;
     std::shared_ptr<Async> createAsync(Async::Callback) override;
+    uint64_t now() const override;
 
   private:
     struct CompareTimeval

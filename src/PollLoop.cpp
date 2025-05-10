@@ -161,6 +161,8 @@ namespace mdnscpp
     return result;
   }
 
+  uint64_t PollLoop::now() const { return timevalToMs(getNow()); }
+
   constexpr bool PollLoop::CompareTimeval::operator()(
       const struct timeval &lhs, const struct timeval &rhs) const
   {
@@ -357,6 +359,8 @@ namespace mdnscpp
   }
 
   void PollLoop::updateWatch(PollWatch *watch) { pollfdsInvalid_ = true; }
+
+  PollLoop::PollLoop() { MDNSCPP_INFO << "PollLoop()" << MDNSCPP_ENDL; }
 
   PollLoop::~PollLoop() { removeWakeupPipes(); }
 
