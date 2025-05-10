@@ -61,7 +61,7 @@ namespace mdnscpp
     return sdRef;
   }
 
-  void DnsSdBrowser::browseResult(uint32_t interfaceIndexIndex,
+  void DnsSdBrowser::browseResult(uint32_t interfaceIndex,
       DNSServiceErrorType errorCode, DNSServiceFlags flags,
       const char *serviceName, const char *regtype, const char *replyDomain)
   {
@@ -76,7 +76,7 @@ namespace mdnscpp
 
     key.reserve(32);
 
-    key += std::to_string(interfaceIndexIndex);
+    key += std::to_string(interfaceIndex);
     key += ",";
     key += regtype;
     key += replyDomain;
@@ -91,7 +91,7 @@ namespace mdnscpp
                    << "replyDomain " << replyDomain << MDNSCPP_ENDL;
 
       resolves_[key] = std::make_shared<DnsSdResolve>(shared_from_this(),
-          interfaceIndexIndex, serviceName, regtype, replyDomain);
+          interfaceIndex, serviceName, regtype, replyDomain);
     }
     else
     {
@@ -104,12 +104,12 @@ namespace mdnscpp
   }
 
   void DnsSdBrowser::browseResultCallback(DNSServiceRef sdRef,
-      DNSServiceFlags flags, uint32_t interfaceIndexIndex,
+      DNSServiceFlags flags, uint32_t interfaceIndex,
       DNSServiceErrorType errorCode, const char *serviceName,
       const char *regtype, const char *replyDomain, void *context)
   {
-    reinterpret_cast<DnsSdBrowser *>(context)->browseResult(interfaceIndexIndex,
-        errorCode, flags, serviceName, regtype, replyDomain);
+    reinterpret_cast<DnsSdBrowser *>(context)->browseResult(
+        interfaceIndex, errorCode, flags, serviceName, regtype, replyDomain);
   }
 
   std::shared_ptr<Browser> DnsSdBrowser::getSharedFromThis()
