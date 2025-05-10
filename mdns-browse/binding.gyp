@@ -22,8 +22,7 @@
         "<!@(node -p \"require('get-uv-event-loop-napi-h').include\")"
       ],
       "defines": [
-        "NAPI_DISABLE_CPP_EXCEPTIONS",
-        "MDNSCPP_ENABLE_VERBOSE_DEBUG"
+        "NAPI_DISABLE_CPP_EXCEPTIONS"
       ],
       "conditions": [
         [
