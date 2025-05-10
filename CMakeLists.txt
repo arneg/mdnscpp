@@ -20,12 +20,14 @@ target_sources(libmdnscpp PRIVATE
 find_library(LIB_DNS_SD NAMES dns_sd)
 find_library(LIB_AVAHI NAMES avahi-client)
 
-if (_LIB_AVAHI)
+if (LIB_AVAHI)
   message("Found avahi.")
 
   target_sources(libmdnscpp PRIVATE
     src/platforms/avahi/AvahiPlatform.h
     src/platforms/avahi/AvahiPlatform.cpp
+    src/platforms/avahi/AvahiBrowser.h
+    src/platforms/avahi/AvahiBrowser.cpp
   )
   target_compile_definitions(libmdnscpp PRIVATE LIBMDNS_PLATFORM_AVAHI)
   target_link_libraries(libmdnscpp PRIVATE avahi-client)

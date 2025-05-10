@@ -1,0 +1,57 @@
+#include "AvahiBrowser.h"
+#include "AvahiPlatform.h"
+
+#include <iostream>
+
+namespace mdnscpp
+{
+  AvahiBrowser::AvahiBrowser(std::shared_ptr<AvahiPlatform> platform,
+      const std::string &type, const std::string &protocol,
+      std::function<void(const Browser &)> onResultsChanged,
+      const std::string &domain, size_t interface)
+      : Browser(type, protocol, onResultsChanged, domain, interface)
+  {
+    std::string tmp = type + "." + protocol;
+    avahiBrowser_ = avahi_service_browser_new(platform->getAvahiClient(),
+        AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, tmp.c_str(), NULL,
+        static_cast<AvahiLookupFlags>(0), avahiServiceBrowserCallback, this);
+
+    if (!avahiBrowser_)
+      throw std::runtime_error("Failed to create avahi service browser.");
+
+    std::cerr << describe() << " started" << std::endl;
+  }
+
+  std::string AvahiBrowser::describe() const
+  {
+    std::string result = "AvahiBrowse(";
+    result += type_;
+    result += ", ";
+    result += protocol_;
+    result += ", ";
+    result += domain_;
+    result += ", ";
+    result += interface_;
+    result += ")";
+    return result;
+  }
+
+  void AvahiBrowser::resultCallback(AvahiIfIndex interface,
+      AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
+      const char *type, const char *domain, AvahiLookupResultFlags flags)
+  {
+    std::cerr << describe() << " avahiServiceBrowserCallback("
+              << (name ? name : "nil") << ", " << (type ? type : "nil") << ", "
+              << (domain ? domain : "nil") << ", " << interface << ")"
+              << std::endl;
+  }
+
+  void AvahiBrowser::avahiServiceBrowserCallback(AvahiServiceBrowser *b,
+      AvahiIfIndex interface, AvahiProtocol protocol, AvahiBrowserEvent event,
+      const char *name, const char *type, const char *domain,
+      AvahiLookupResultFlags flags, void *userdata)
+  {
+    reinterpret_cast<AvahiBrowser *>(userdata)->resultCallback(
+        interface, protocol, event, name, type, domain, flags);
+  }
+} // namespace mdnscpp

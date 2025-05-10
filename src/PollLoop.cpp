@@ -131,6 +131,7 @@ namespace mdnscpp
   std::shared_ptr<EventLoop::Timeout> PollLoop::createTimeout(
       TimeoutState state, Timeout::Callback callback)
   {
+    std::cerr << "creating timeout" << std::endl;
     return std::make_shared<PollTimeout>(*this, state, callback);
   }
 

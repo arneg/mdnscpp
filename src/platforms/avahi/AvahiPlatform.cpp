@@ -1,11 +1,70 @@
 #include "AvahiPlatform.h"
+#include "AvahiBrowser.h"
+
+#include <iostream>
+
+struct AvahiWatch
+{
+  std::shared_ptr<mdnscpp::EventLoop::Watch> watch;
+};
+
+struct AvahiTimeout
+{
+  std::shared_ptr<mdnscpp::EventLoop::Timeout> timeout;
+};
 
 namespace mdnscpp
 {
-  AvahiPlatform::AvahiPlatform(
-      std::function<void(int)> watchFd, std::function<void(int)> unwatchFd)
-      : Platform(watchFd, unwatchFd)
+  static EventLoop::EventType fromAvahiEvent(AvahiWatchEvent event)
   {
+    EventLoop::EventType result;
+
+    int tmp = static_cast<int>(event);
+
+    if (tmp & AVAHI_WATCH_IN)
+      result.setRead();
+    if (tmp & AVAHI_WATCH_OUT)
+      result.setWrite();
+    if (tmp & AVAHI_WATCH_ERR)
+      result.setError();
+    if (tmp & AVAHI_WATCH_HUP)
+      result.setDisconnect();
+
+    return result;
+  }
+
+  static AvahiWatchEvent toAvahiEvent(EventLoop::EventType event)
+  {
+    int result = 0;
+
+    if (event.hasRead())
+      result |= AVAHI_WATCH_IN;
+    if (event.hasWrite())
+      result |= AVAHI_WATCH_OUT;
+    if (event.hasError())
+      result |= AVAHI_WATCH_ERR;
+    if (event.hasDisconnect())
+      result |= AVAHI_WATCH_HUP;
+
+    return static_cast<AvahiWatchEvent>(result);
+  }
+
+  static EventLoop::TimeoutState stateFromTimeval(const struct timeval *tv)
+  {
+    EventLoop::TimeoutState state;
+
+    if (tv)
+    {
+      state = EventLoop::TimeoutAbsolute{*tv};
+    }
+
+    return state;
+  }
+
+  AvahiPlatform::AvahiPlatform(EventLoop &loop) : Platform(loop)
+  {
+    std::cerr << "this " << (void *)(this) << std::endl;
+    std::cerr << "loop " << (void *)(&loop) << std::endl;
     avahiPoll_ = {
         .userdata = this,
         .watch_new = avahiPollWatchNew,
@@ -31,10 +90,11 @@ namespace mdnscpp
       std::function<void(const Browser &)> onResultsChanged,
       const std::string &domain, size_t interface)
   {
-    return nullptr;
+    return std::make_shared<AvahiBrowser>(shared_from_this(), type, protocol,
+        onResultsChanged, domain, interface);
   }
 
-  void AvahiPlatform::process(int fd) {}
+  AvahiClient *AvahiPlatform::getAvahiClient() const { return avahiClient_; }
 
   void AvahiPlatform::avahiClientCallback(
       AvahiClient *s, AvahiClientState state, void *userdata)
@@ -44,19 +104,49 @@ namespace mdnscpp
   AvahiWatch *AvahiPlatform::avahiPollWatchNew(const AvahiPoll *api, int fd,
       AvahiWatchEvent event, AvahiWatchCallback callback, void *userdata)
   {
+    AvahiPlatform *self = reinterpret_cast<AvahiPlatform *>(api->userdata);
+    AvahiWatch *w = new AvahiWatch();
+
+    w->watch = self->loop_.createWatch(
+        fd, fromAvahiEvent(event), [=](EventLoop::EventType events) {
+          callback(w, fd, toAvahiEvent(events), userdata);
+        });
+
+    return w;
   }
+
   void AvahiPlatform::avahiPollWatchUpdate(AvahiWatch *w, AvahiWatchEvent event)
   {
+    w->watch->update(fromAvahiEvent(event));
   }
-  AvahiWatchEvent AvahiPlatform::avahiPollWatchGetEvents(AvahiWatch *w) {}
-  void AvahiPlatform::avahiPollWatchFree(AvahiWatch *w) {}
+
+  AvahiWatchEvent AvahiPlatform::avahiPollWatchGetEvents(AvahiWatch *w)
+  {
+    return toAvahiEvent(w->watch->getRequestedEvents());
+  }
+
+  void AvahiPlatform::avahiPollWatchFree(AvahiWatch *w) { delete w; }
+
   AvahiTimeout *AvahiPlatform::avahiPollTimeoutNew(const AvahiPoll *api,
       const struct timeval *tv, AvahiTimeoutCallback callback, void *userdata)
   {
+    AvahiPlatform *self = reinterpret_cast<AvahiPlatform *>(api->userdata);
+    AvahiTimeout *t = new AvahiTimeout();
+
+    std::cerr << "self " << (void *)(self) << std::endl;
+    std::cerr << "loop " << (void *)(&self->loop_) << std::endl;
+
+    t->timeout = self->loop_.createTimeout(stateFromTimeval(tv),
+        [=](EventLoop::Timeout &) { callback(t, userdata); });
+
+    return t;
   }
+
   void AvahiPlatform::avahiPollTimeoutUpdate(
-      AvahiTimeout *, const struct timeval *tv)
+      AvahiTimeout *t, const struct timeval *tv)
   {
+    t->timeout->update(stateFromTimeval(tv));
   }
-  void AvahiPlatform::avahiPollTimeoutFree(AvahiTimeout *t) {}
+
+  void AvahiPlatform::avahiPollTimeoutFree(AvahiTimeout *t) { delete t; }
 } // namespace mdnscpp

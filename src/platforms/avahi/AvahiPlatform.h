@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mdnscpp/EventLoop.h>
 #include <mdnscpp/Platform.h>
 
 #include <avahi-client/client.h>
@@ -7,18 +8,18 @@
 
 namespace mdnscpp
 {
-  class AvahiPlatform : public Platform
+  class AvahiPlatform : public Platform,
+                        public std::enable_shared_from_this<AvahiPlatform>
   {
   public:
-    AvahiPlatform(
-        std::function<void(int)> watchFd, std::function<void(int)> unwatchFd);
+    AvahiPlatform(EventLoop &loop);
 
     std::shared_ptr<Browser> createBrowser(const std::string &type,
         const std::string &protocol,
         std::function<void(const Browser &)> onResultsChanged,
         const std::string &domain = "", size_t interface = 0) override;
 
-    void process(int fd) override;
+    AvahiClient *getAvahiClient() const;
 
   private:
     struct AvahiPoll avahiPoll_;
