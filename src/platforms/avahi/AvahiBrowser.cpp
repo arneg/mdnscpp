@@ -1,48 +1,57 @@
 #include "AvahiBrowser.h"
 #include "AvahiPlatform.h"
+#include "AvahiUtils.h"
 
 #include "../../debug.h"
 #include "../../throw.h"
 
 namespace mdnscpp
 {
-  static AvahiProtocol toAvahiProtocol(IPProtocol ipProtocol)
-  {
-    switch (ipProtocol)
-    {
-    case IPProtocol::IPv4:
-      return AVAHI_PROTO_INET;
-    case IPProtocol::IPv6:
-      return AVAHI_PROTO_INET6;
-    default:
-      return AVAHI_PROTO_UNSPEC;
-    }
-  }
-
   AvahiBrowser::AvahiBrowser(std::shared_ptr<AvahiPlatform> platform,
       const std::string &type, const std::string &protocol,
       ResultsChangedCallback onResultsChanged, const std::string &domain,
       size_t interfaceIndex, IPProtocol ipProtocol)
       : Browser(type, protocol, onResultsChanged, domain, interfaceIndex,
-            ipProtocol)
+            ipProtocol),
+        platform_(platform)
   {
+    MDNSCPP_INFO << describe() << " started" << MDNSCPP_ENDL;
+
+    auto client = platform->getAvahiClient();
+
     std::string tmp = type + "." + protocol;
-    // TODO: translate interface index
-    avahiBrowser_ = avahi_service_browser_new(platform->getAvahiClient(),
-        AVAHI_IF_UNSPEC, toAvahiProtocol(ipProtocol), tmp.c_str(),
-        domain.size() ? domain.c_str() : NULL, static_cast<AvahiLookupFlags>(0),
+    avahiBrowser_ = avahi_service_browser_new(client,
+        toAvahiInterfaceIndex(interfaceIndex), toAvahiProtocol(ipProtocol),
+        tmp.c_str(), domain.c_str(), static_cast<AvahiLookupFlags>(0),
         avahiServiceBrowserCallback, this);
+
+    MDNSCPP_INFO << "client: " << client << ", type: '" << tmp << "'"
+                 << ", domain: '" << domain << "'"
+                 << ", protocol: " << toAvahiProtocol(ipProtocol)
+                 << MDNSCPP_ENDL;
 
     if (!avahiBrowser_)
       MDNSCPP_THROW(
           std::runtime_error, "Failed to create avahi service browser.");
+  }
 
-    MDNSCPP_INFO << describe() << " started" << MDNSCPP_ENDL;
+  AvahiBrowser::~AvahiBrowser()
+  {
+    MDNSCPP_INFO << describe() << " stopped" << MDNSCPP_ENDL;
+    if (avahiBrowser_)
+    {
+      avahi_service_browser_free(avahiBrowser_);
+    }
   }
 
   std::shared_ptr<Browser> AvahiBrowser::getSharedFromThis()
   {
     return shared_from_this();
+  }
+
+  AvahiClient *AvahiBrowser::getAvahiClient() const
+  {
+    return avahi_service_browser_get_client(avahiBrowser_);
   }
 
   std::string AvahiBrowser::describe() const
@@ -63,10 +72,38 @@ namespace mdnscpp
       AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
       const char *type, const char *domain, AvahiLookupResultFlags flags)
   {
-    MDNSCPP_INFO << describe() << " avahiServiceBrowserCallback("
-                 << (name ? name : "nil") << ", " << (type ? type : "nil")
-                 << ", " << (domain ? domain : "nil") << ", " << interfaceIndex
-                 << ")" << MDNSCPP_ENDL;
+    if (event == AVAHI_BROWSER_NEW || event == AVAHI_BROWSER_REMOVE)
+    {
+      std::string key;
+
+      key.reserve(32);
+
+      key += std::to_string(interfaceIndex);
+      key += ",";
+      key += type;
+      key += domain;
+      key += ",";
+      key += protocol == AVAHI_PROTO_INET6 ? "ipv6" : "ipv4";
+      key += ",";
+      key += name;
+
+      if (event == AVAHI_BROWSER_NEW)
+      {
+        MDNSCPP_INFO << describe() << " NEW " << key << MDNSCPP_ENDL;
+
+        // NEW can happen several times due to data from the cache.
+        if (resolvers_.find(key) != resolvers_.end())
+          return;
+
+        resolvers_[key] = std::make_shared<AvahiResolver>(shared_from_this(),
+            name, type, domain, interfaceIndex, fromAvahiProtocol(protocol));
+      }
+      else
+      {
+        MDNSCPP_INFO << describe() << " REMOVE " << key << MDNSCPP_ENDL;
+        resolvers_.erase(key);
+      }
+    }
   }
 
   void AvahiBrowser::avahiServiceBrowserCallback(AvahiServiceBrowser *b,

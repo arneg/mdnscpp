@@ -65,9 +65,13 @@ if(LIB_AVAHI)
     src/platforms/avahi/AvahiPlatform.cpp
     src/platforms/avahi/AvahiBrowser.h
     src/platforms/avahi/AvahiBrowser.cpp
+    src/platforms/avahi/AvahiResolver.h
+    src/platforms/avahi/AvahiResolver.cpp
+    src/platforms/avahi/AvahiUtils.h
+    src/platforms/avahi/AvahiUtils.cpp
   )
   target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_PLATFORM_AVAHI)
-  target_link_libraries(libmdnscpp PRIVATE avahi-client)
+  target_link_libraries(libmdnscpp PRIVATE avahi-client avahi-common)
 elseif(LIB_DNS_SD OR APPLE)
   message("Found libdns_sd.")
   target_sources(libmdnscpp PRIVATE

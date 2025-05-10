@@ -13,6 +13,7 @@ namespace mdnscpp
   {
   public:
     AvahiPlatform(EventLoop &loop);
+    ~AvahiPlatform();
 
     // TODO: Do we need the default arguments here?
     std::shared_ptr<Browser> createBrowser(const std::string &type,

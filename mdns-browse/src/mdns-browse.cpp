@@ -167,6 +167,19 @@ public:
   ~MdnsBrowseAddon() { MDNSCPP_INFO << "~MdnsBrowseAddon()" << MDNSCPP_ENDL; }
 
 private:
+  std::shared_ptr<mdnscpp::Platform> getPlatform()
+  {
+    auto platform = platform_.lock();
+
+    if (!platform)
+    {
+      platform = mdnscpp::createPlatform(eventLoop_);
+      platform_ = platform;
+    }
+
+    return platform;
+  }
+
   Napi::Value startBrowse(const Napi::CallbackInfo &info)
   {
     Napi::Env env = info.Env();
@@ -254,8 +267,9 @@ private:
       }
     }
 
+    auto platform = getPlatform();
     BrowseContext *ctx = new BrowseContext(env, callback);
-    ctx->setHandle(platform_->createBrowser(
+    ctx->setHandle(platform->createBrowser(
         type, protocol,
         [ctx](std::shared_ptr<mdnscpp::Browser> browser) {
           ctx->onResultsChanged(browser);
@@ -268,7 +282,7 @@ private:
   }
 
   mdnscpp::LibuvLoop eventLoop_;
-  std::shared_ptr<mdnscpp::Platform> platform_;
+  std::weak_ptr<mdnscpp::Platform> platform_;
 };
 
 // The macro announces that instances of the class `MdnsBrowseAddon` will be

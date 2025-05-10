@@ -47,10 +47,16 @@
           {
             "sources": [
               "src/mdnscpp/src/platforms/avahi/AvahiBrowser.cpp",
-              "src/mdnscpp/src/platforms/avahi/AvahiPlatform.cpp"
+              "src/mdnscpp/src/platforms/avahi/AvahiPlatform.cpp",
+              "src/mdnscpp/src/platforms/avahi/AvahiResolver.cpp",
+              "src/mdnscpp/src/platforms/avahi/AvahiUtils.cpp"
             ],
             "defines": [
               "LIBMDNS_PLATFORM_AVAHI"
+            ],
+            "libraries": [
+              "-lavahi-client",
+              "-lavahi-common"
             ]
           }
         ],
