@@ -86,8 +86,8 @@ namespace mdnscpp
 
     private:
       LibuvLoop &loop_;
-      LibuvTimer *timer_;
       struct timeval time_;
+      LibuvTimer *timer_;
 
       void install();
       void uninstall();
