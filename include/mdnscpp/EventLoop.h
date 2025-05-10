@@ -114,6 +114,7 @@ namespace mdnscpp
       using Callback = std::function<void()>;
       virtual bool trigger(bool deallocate);
       InternalAsync(Callback callback);
+      virtual ~InternalAsync() = default;
       void process();
       bool shouldDeallocate();
 
