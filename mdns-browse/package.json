@@ -20,6 +20,8 @@
   "author": "Arne Goedeke",
   "license": "MIT",
   "description": "A module to browse for dnssd services.",
+  "repository": "github:arneg/mdnscpp",
+  "homepage": "https://github.com/arneg/mdnscpp",
   "dependencies": {
     "bindings": "*",
     "get-uv-event-loop-napi-h": "^1.0.6",
