@@ -43,6 +43,9 @@ namespace mdnscpp
     result += ", address: ";
     result += getAddress();
 
+    result += ", port: ";
+    result += std::to_string(getPort());
+
     result += ", interfaceIndex: ";
     result += std::to_string(getInterface());
 
