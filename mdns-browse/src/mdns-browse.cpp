@@ -145,7 +145,14 @@ void BrowseContext::cleanup(const Napi::CallbackInfo &info)
 void BrowseContext::finalizer(Napi::Env env, BrowseContext *ctx)
 {
   MDNSCPP_INFO << "BrowseContext::finalizer()" << MDNSCPP_ENDL;
-  delete ctx;
+  if (ctx->handle_)
+  {
+    MDNSCPP_INFO << "BrowseContext leaked" << MDNSCPP_ENDL;
+  }
+  else
+  {
+    delete ctx;
+  }
 }
 
 class MdnsBrowseAddon : public Napi::Addon<MdnsBrowseAddon>
