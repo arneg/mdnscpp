@@ -24,10 +24,11 @@ namespace mdnscpp
 
   void DnsSdRef::close()
   {
+    watch_ = nullptr;
     if (sdRef_)
     {
-      watch_ = nullptr;
       DNSServiceRefDeallocate(sdRef_);
+      sdRef_ = nullptr;
     }
   }
 
