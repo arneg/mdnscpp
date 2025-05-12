@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <mdnscpp/EventLoop.h>
 #include <mdnscpp/Platform.h>
 
@@ -8,9 +10,12 @@
 
 namespace mdnscpp
 {
+  class AvahiBrowser;
+
   class AvahiPlatform : public Platform,
                         public std::enable_shared_from_this<AvahiPlatform>
   {
+    friend AvahiBrowser;
   public:
     AvahiPlatform(EventLoop &loop);
     ~AvahiPlatform();
@@ -25,8 +30,19 @@ namespace mdnscpp
     AvahiClient *getAvahiClient() const;
 
   private:
+    // We need to keep this list in order to call pause()
+    // and unpause()
+    std::vector<AvahiBrowser*> browsers_;
     struct AvahiPoll avahiPoll_;
     AvahiClient *avahiClient_;
+    bool paused_ = true;
+
+    void startClient();
+    void stopClient();
+    void pause();
+    void unpause();
+
+    void removeBrowser(AvahiBrowser *browser);
 
     static void avahiClientCallback(
         AvahiClient *s, AvahiClientState state, void *userdata);

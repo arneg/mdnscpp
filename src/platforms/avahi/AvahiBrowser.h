@@ -25,6 +25,9 @@ namespace mdnscpp
 
     std::string describe() const;
 
+    void pause();
+    void unpause();
+
     AvahiClient *getAvahiClient() const;
 
   protected:
@@ -32,7 +35,7 @@ namespace mdnscpp
 
   private:
     std::shared_ptr<AvahiPlatform> platform_;
-    AvahiServiceBrowser *avahiBrowser_;
+    AvahiServiceBrowser *avahiBrowser_ = nullptr;
     std::unordered_map<std::string, std::shared_ptr<AvahiResolver>> resolvers_;
 
     void resultCallback(AvahiIfIndex interfaceIndex, AvahiProtocol protocol,

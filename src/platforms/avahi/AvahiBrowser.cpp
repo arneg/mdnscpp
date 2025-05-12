@@ -15,33 +15,14 @@ namespace mdnscpp
             ipProtocol),
         platform_(platform)
   {
-    MDNSCPP_INFO << describe() << " started" << MDNSCPP_ENDL;
-
-    auto client = platform->getAvahiClient();
-
-    std::string tmp = type + "." + protocol;
-    avahiBrowser_ = avahi_service_browser_new(client,
-        toAvahiInterfaceIndex(interfaceIndex), toAvahiProtocol(ipProtocol),
-        tmp.c_str(), domain.c_str(), static_cast<AvahiLookupFlags>(0),
-        avahiServiceBrowserCallback, this);
-
-    MDNSCPP_INFO << "client: " << client << ", type: '" << tmp << "'"
-                 << ", domain: '" << domain << "'"
-                 << ", protocol: " << toAvahiProtocol(ipProtocol)
-                 << MDNSCPP_ENDL;
-
-    if (!avahiBrowser_)
-      MDNSCPP_THROW(
-          std::runtime_error, "Failed to create avahi service browser.");
+    MDNSCPP_INFO << describe() << " created" << MDNSCPP_ENDL;
   }
 
   AvahiBrowser::~AvahiBrowser()
   {
-    MDNSCPP_INFO << describe() << " stopped" << MDNSCPP_ENDL;
-    if (avahiBrowser_)
-    {
-      avahi_service_browser_free(avahiBrowser_);
-    }
+    platform_->removeBrowser(this);
+    MDNSCPP_INFO << describe() << " destroyed" << MDNSCPP_ENDL;
+    pause();
   }
 
   std::shared_ptr<Browser> AvahiBrowser::getSharedFromThis()
@@ -51,7 +32,7 @@ namespace mdnscpp
 
   AvahiClient *AvahiBrowser::getAvahiClient() const
   {
-    return avahi_service_browser_get_client(avahiBrowser_);
+    return platform_->getAvahiClient();
   }
 
   std::string AvahiBrowser::describe() const
@@ -66,6 +47,40 @@ namespace mdnscpp
     result += interfaceIndex_;
     result += ")";
     return result;
+  }
+
+  void AvahiBrowser::pause()
+  {
+    resolvers_.clear();
+
+    if (avahiBrowser_)
+    {
+      avahi_service_browser_free(avahiBrowser_);
+      avahiBrowser_ = nullptr;
+    }
+
+    MDNSCPP_INFO << describe() << " stopped" << MDNSCPP_ENDL;
+  }
+
+  void AvahiBrowser::unpause()
+  {
+    std::string tmp = getType() + "." + getProtocol();
+
+    avahiBrowser_ = avahi_service_browser_new(getAvahiClient(),
+        toAvahiInterfaceIndex(getInterface()), toAvahiProtocol(getIPProtocol()),
+        tmp.c_str(), getDomain().c_str(), static_cast<AvahiLookupFlags>(0),
+        avahiServiceBrowserCallback, this);
+
+    MDNSCPP_INFO << ", type: '" << tmp << "'"
+                 << ", domain: '" << getDomain() << "'"
+                 << ", protocol: " << toAvahiProtocol(getIPProtocol())
+                 << MDNSCPP_ENDL;
+
+    if (!avahiBrowser_)
+      MDNSCPP_THROW(
+          std::runtime_error, "Failed to create avahi service browser.");
+
+    MDNSCPP_INFO << describe() << " started" << MDNSCPP_ENDL;
   }
 
   void AvahiBrowser::resultCallback(AvahiIfIndex interfaceIndex,

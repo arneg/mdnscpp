@@ -98,23 +98,14 @@ namespace mdnscpp
         .timeout_free = avahiPollTimeoutFree,
     };
 
-    int err;
-
-    avahiClient_ = avahi_client_new(&avahiPoll_,
-        static_cast<AvahiClientFlags>(0) /*AVAHI_CLIENT_NO_FAIL*/, NULL, this,
-        &err);
-
-    if (!avahiClient_)
-      MDNSCPP_THROW(std::runtime_error, "avahi_client_new failed.");
+    startClient();
   }
 
   AvahiPlatform::~AvahiPlatform()
   {
+    MDNSCPP_ASSERT(browsers_.size() == 0);
     MDNSCPP_INFO << "~AvahiPlatform(" << this << ")" << MDNSCPP_ENDL;
-    if (avahiClient_)
-    {
-      avahi_client_free(avahiClient_);
-    }
+    stopClient();
   }
 
   std::shared_ptr<Browser> AvahiPlatform::createBrowser(const std::string &type,
@@ -122,16 +113,80 @@ namespace mdnscpp
       Browser::ResultsChangedCallback onResultsChanged,
       const std::string &domain, size_t interfaceIndex, IPProtocol ipProtocol)
   {
-    return std::make_shared<AvahiBrowser>(shared_from_this(), type, protocol,
+    auto browser = std::make_shared<AvahiBrowser>(shared_from_this(), type, protocol,
         onResultsChanged, domain, interfaceIndex, ipProtocol);
+
+    if (!paused_)
+      browser->unpause();
+
+    browsers_.push_back(browser.get());
+
+    return browser;
   }
 
   AvahiClient *AvahiPlatform::getAvahiClient() const { return avahiClient_; }
+
+  void AvahiPlatform::startClient()
+  {
+    int err;
+
+    avahiClient_ = avahi_client_new(&avahiPoll_,
+        AVAHI_CLIENT_NO_FAIL, avahiClientCallback, this,
+        &err);
+
+    if (!avahiClient_)
+      MDNSCPP_THROW(std::runtime_error, "avahi_client_new failed.");
+  }
+
+  void AvahiPlatform::stopClient()
+  {
+    if (avahiClient_)
+    {
+      avahi_client_free(avahiClient_);
+    }
+  }
+
+  void AvahiPlatform::pause()
+  {
+    if (paused_) return;
+    paused_ = true;
+    for (AvahiBrowser *browser : browsers_)
+    {
+      browser->pause();
+    }
+    stopClient();
+    startClient();
+  }
+
+  void AvahiPlatform::unpause()
+  {
+    if (!paused_) return;
+    paused_ = false;
+    for (AvahiBrowser *browser : browsers_)
+    {
+      browser->unpause();
+    }
+  }
+
+  void AvahiPlatform::removeBrowser(AvahiBrowser *browser)
+  {
+    auto it = std::remove(browsers_.begin(), browsers_.end(), browser);
+    browsers_.erase(it, browsers_.end());
+  }
 
   void AvahiPlatform::avahiClientCallback(
       AvahiClient *s, AvahiClientState state, void *userdata)
   {
     MDNSCPP_INFO << "avahiClientCallback(" << state << ")" << MDNSCPP_ENDL;
+    AvahiPlatform *platform = reinterpret_cast<AvahiPlatform*>(userdata);
+    switch (state) {
+    case AVAHI_CLIENT_S_RUNNING:
+      platform->unpause();
+      break;
+    default:
+      platform->pause();
+      break;
+    }
   }
 
   AvahiWatch *AvahiPlatform::avahiPollWatchNew(const AvahiPoll *api, int fd,
