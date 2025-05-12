@@ -20,6 +20,7 @@ namespace mdnscpp
         Browser(type, protocol, onResultsChanged, domain, interfaceIndex,
             ipProtocol)
   {
+    MDNSCPP_INFO << "DnsSdBrowser()" << MDNSCPP_ENDL;
   }
 
   DnsSdBrowser::~DnsSdBrowser()
