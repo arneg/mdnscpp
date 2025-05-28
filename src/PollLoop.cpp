@@ -1,5 +1,6 @@
 #include <mdnscpp/PollLoop.h>
 
+#include <algorithm>
 #include <limits>
 #include <poll.h>
 #include <unistd.h>
