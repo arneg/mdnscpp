@@ -10,7 +10,8 @@
     "import": "node import-mdnscpp.js",
     "clean": "node-gyp clean",
     "prebuild": "node-gyp configure",
-    "build": "node-gyp build"
+    "build": "node-gyp build",
+    "prepublishOnly": "npm run import"
   },
   "keywords": [
     "mdns",
