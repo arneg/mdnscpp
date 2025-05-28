@@ -83,7 +83,7 @@ async function findAndCompareService(service) {
 function randomizeServiceName(service) {
   return {
     ...service,
-    name: "test-" + randomBytes(8).toString("hex"),
+    name: (service.name || "test") + "-" + randomBytes(8).toString("hex"),
     port: 1 + Math.round(Math.random() * 0xfff1),
   };
 }
@@ -95,6 +95,7 @@ const exampleServices = {
   "with txtRecord": { type, txtRecords: { foo: "bar" } },
   "with txtRecords": { type, txtRecords: { foo: "bar", bar: "foo" } },
   "with empty txtRecord": { type, txtRecords: { foo: "bar", bar: "" } },
+  "with unicode name": { type, name: "капуста" },
 };
 
 describe("local", () => {
