@@ -1,6 +1,8 @@
 #include "AvahiPlatform.h"
 #include "AvahiBrowser.h"
 
+#include <algorithm>
+
 #include "../../debug.h"
 #include "../../throw.h"
 #include "../../timeval.h"
@@ -113,8 +115,8 @@ namespace mdnscpp
       Browser::ResultsChangedCallback onResultsChanged,
       const std::string &domain, size_t interfaceIndex, IPProtocol ipProtocol)
   {
-    auto browser = std::make_shared<AvahiBrowser>(shared_from_this(), type, protocol,
-        onResultsChanged, domain, interfaceIndex, ipProtocol);
+    auto browser = std::make_shared<AvahiBrowser>(shared_from_this(), type,
+        protocol, onResultsChanged, domain, interfaceIndex, ipProtocol);
 
     if (!paused_)
       browser->unpause();
@@ -130,9 +132,8 @@ namespace mdnscpp
   {
     int err;
 
-    avahiClient_ = avahi_client_new(&avahiPoll_,
-        AVAHI_CLIENT_NO_FAIL, avahiClientCallback, this,
-        &err);
+    avahiClient_ = avahi_client_new(
+        &avahiPoll_, AVAHI_CLIENT_NO_FAIL, avahiClientCallback, this, &err);
 
     if (!avahiClient_)
       MDNSCPP_THROW(std::runtime_error, "avahi_client_new failed.");
@@ -148,7 +149,8 @@ namespace mdnscpp
 
   void AvahiPlatform::pause()
   {
-    if (paused_) return;
+    if (paused_)
+      return;
     paused_ = true;
     for (AvahiBrowser *browser : browsers_)
     {
@@ -160,7 +162,8 @@ namespace mdnscpp
 
   void AvahiPlatform::unpause()
   {
-    if (!paused_) return;
+    if (!paused_)
+      return;
     paused_ = false;
     for (AvahiBrowser *browser : browsers_)
     {
@@ -178,8 +181,9 @@ namespace mdnscpp
       AvahiClient *s, AvahiClientState state, void *userdata)
   {
     MDNSCPP_INFO << "avahiClientCallback(" << state << ")" << MDNSCPP_ENDL;
-    AvahiPlatform *platform = reinterpret_cast<AvahiPlatform*>(userdata);
-    switch (state) {
+    AvahiPlatform *platform = reinterpret_cast<AvahiPlatform *>(userdata);
+    switch (state)
+    {
     case AVAHI_CLIENT_S_RUNNING:
       platform->unpause();
       break;
