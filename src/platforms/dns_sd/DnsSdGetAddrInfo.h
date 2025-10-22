@@ -34,8 +34,9 @@ namespace mdnscpp
     void onResult(DNSServiceFlags flags, uint32_t interfaceIndexIndex,
         DNSServiceErrorType errorCode, const char *hostname,
         const struct sockaddr *address, uint32_t ttl);
-    static DNSServiceRef startGetAddrInfo(
-        size_t interfaceIndex, const std::string &hostname, void *context);
+    static DNSServiceRef startGetAddrInfo(size_t interfaceIndex,
+        DNSServiceProtocol protocol, const std::string &hostname,
+        void *context);
     static void getAddrInfoResultCallback(DNSServiceRef sdRef,
         DNSServiceFlags flags, uint32_t interfaceIndexIndex,
         DNSServiceErrorType errorCode, const char *hostname,

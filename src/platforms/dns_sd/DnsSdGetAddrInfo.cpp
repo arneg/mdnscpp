@@ -18,10 +18,27 @@
 
 namespace mdnscpp
 {
+  static DNSServiceProtocol getDnsServiceProtocol(IPProtocol proto)
+  {
+    switch (proto)
+    {
+    case IPProtocol::IPv4:
+      return kDNSServiceProtocol_IPv4;
+    case IPProtocol::IPv6:
+      return kDNSServiceProtocol_IPv6;
+    case IPProtocol::Both:
+      return kDNSServiceProtocol_IPv4 | kDNSServiceProtocol_IPv6;
+    }
+
+    return 0;
+  }
+
   DnsSdGetAddrInfo::DnsSdGetAddrInfo(std::shared_ptr<DnsSdResolve> resolve,
       size_t interfaceIndex, const std::string &hostname, uint16_t port)
       : DnsSdRef(resolve->getPlatform(),
-            startGetAddrInfo(interfaceIndex, hostname, this)),
+            startGetAddrInfo(interfaceIndex,
+                getDnsServiceProtocol(resolve->getBrowser()->getIPProtocol()),
+                hostname, this)),
         resolve_(resolve), interfaceIndex_(interfaceIndex), hostname_(hostname),
         port_(port)
   {
@@ -73,15 +90,14 @@ namespace mdnscpp
             sockAddrToIPProtocol(address), port_));
   }
 
-  DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfo(
-      size_t interfaceIndex, const std::string &hostname, void *context)
+  DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfo(size_t interfaceIndex,
+      DNSServiceProtocol protocol, const std::string &hostname, void *context)
   {
     DNSServiceRef sdRef;
 
     const auto error =
         DNSServiceGetAddrInfo(&sdRef, 0, static_cast<uint32_t>(interfaceIndex),
-            kDNSServiceProtocol_IPv4 | kDNSServiceProtocol_IPv6,
-            hostname.c_str(), getAddrInfoResultCallback, context);
+            protocol, hostname.c_str(), getAddrInfoResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
       MDNSCPP_THROW(std::runtime_error, "Failed.");

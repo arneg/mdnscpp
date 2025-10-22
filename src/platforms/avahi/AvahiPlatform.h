@@ -16,6 +16,7 @@ namespace mdnscpp
                         public std::enable_shared_from_this<AvahiPlatform>
   {
     friend AvahiBrowser;
+
   public:
     AvahiPlatform(EventLoop &loop);
     ~AvahiPlatform();
@@ -32,7 +33,7 @@ namespace mdnscpp
   private:
     // We need to keep this list in order to call pause()
     // and unpause()
-    std::vector<AvahiBrowser*> browsers_;
+    std::vector<AvahiBrowser *> browsers_;
     struct AvahiPoll avahiPoll_;
     AvahiClient *avahiClient_;
     bool paused_ = true;
