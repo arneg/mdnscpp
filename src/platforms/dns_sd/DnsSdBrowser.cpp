@@ -18,7 +18,7 @@ namespace mdnscpp
       : DnsSdRef(platform,
             startBrowse(type, protocol, domain, interfaceIndex, this)),
         Browser(type, protocol, onResultsChanged, domain, interfaceIndex,
-            ipProtocol)
+            ipProtocol, platform->getEventLoop())
   {
     MDNSCPP_INFO << "DnsSdBrowser()" << MDNSCPP_ENDL;
   }

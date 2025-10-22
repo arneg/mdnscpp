@@ -99,6 +99,7 @@ namespace mdnscpp
       Timeout(TimeoutState state, Callback callback);
       virtual ~Timeout() = default;
       virtual void update(TimeoutState state) = 0;
+      void updateImmediate();
 
     protected:
       const Callback callback_;

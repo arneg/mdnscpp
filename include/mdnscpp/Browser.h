@@ -6,6 +6,7 @@
 #include <unordered_set>
 
 #include "BrowseResult.h"
+#include "EventLoop.h"
 #include "Types.h"
 
 namespace mdnscpp
@@ -19,7 +20,7 @@ namespace mdnscpp
 
     Browser(const std::string &type, const std::string &protocol,
         ResultsChangedCallback onResultsChanged, const std::string &domain,
-        size_t interfaceIndex, IPProtocol ipProtocol);
+        size_t interfaceIndex, IPProtocol ipProtocol, EventLoop &loop);
     virtual ~Browser() = default;
 
     const std::string &getType() const;
@@ -35,6 +36,7 @@ namespace mdnscpp
     void removeResult(std::shared_ptr<BrowseResult> result);
 
   protected:
+    std::shared_ptr<EventLoop::Timeout> notifyResultsTimer_;
     std::unordered_set<std::shared_ptr<BrowseResult>> results_;
     const std::string type_;
     const std::string protocol_;
@@ -42,8 +44,10 @@ namespace mdnscpp
     const std::string domain_;
     const size_t interfaceIndex_;
     const IPProtocol ipProtocol_;
+    bool notifyResultsTimerPending_ = false;
 
     virtual std::shared_ptr<Browser> getSharedFromThis() = 0;
     void notifyResultsChanged();
+    void triggerNotifyResultsChanged();
   };
 } // namespace mdnscpp

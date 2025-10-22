@@ -106,6 +106,12 @@ namespace mdnscpp
     callback_(*this);
   }
 
+  void EventLoop::Timeout::updateImmediate()
+  {
+    struct timeval time{0, 0};
+    update(TimeoutRelative{time});
+  }
+
   EventLoop::InternalAsync::InternalAsync(
       EventLoop::InternalAsync::Callback callback)
       : callback_(callback)

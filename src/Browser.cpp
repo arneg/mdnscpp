@@ -23,8 +23,10 @@ namespace mdnscpp
 
   Browser::Browser(const std::string &type, const std::string &protocol,
       ResultsChangedCallback onResultsChanged, const std::string &domain,
-      size_t interfaceIndex, IPProtocol ipProtocol)
-      : type_(type), protocol_(protocol), onResultsChanged_(onResultsChanged),
+      size_t interfaceIndex, IPProtocol ipProtocol, EventLoop &loop)
+      : notifyResultsTimer_(loop.createTimeout(EventLoop::TimeoutDisabled{},
+            [this](EventLoop::Timeout &) { notifyResultsChanged(); })),
+        type_(type), protocol_(protocol), onResultsChanged_(onResultsChanged),
         domain_(domain), interfaceIndex_(interfaceIndex),
         ipProtocol_(ipProtocol)
   {
@@ -58,7 +60,7 @@ namespace mdnscpp
 
     MDNSCPP_DEBUG_ASSERT(results_.find(result) != results_.end());
     results_.insert(result);
-    notifyResultsChanged();
+    triggerNotifyResultsChanged();
   }
 
   void Browser::removeResult(std::shared_ptr<BrowseResult> result)
@@ -66,11 +68,12 @@ namespace mdnscpp
     auto count = results_.erase(result);
 
     MDNSCPP_ASSERT(count == 1);
-    notifyResultsChanged();
+    triggerNotifyResultsChanged();
   }
 
   void Browser::notifyResultsChanged()
   {
+    notifyResultsTimerPending_ = false;
     if (!onResultsChanged_)
       return;
 
@@ -87,5 +90,15 @@ namespace mdnscpp
                     << MDNSCPP_ENDL;
     }
 #endif
+  }
+
+  void Browser::triggerNotifyResultsChanged()
+  {
+    if (!onResultsChanged_)
+      return;
+    if (notifyResultsTimerPending_)
+      return;
+    notifyResultsTimerPending_ = true;
+    notifyResultsTimer_->updateImmediate();
   }
 } // namespace mdnscpp

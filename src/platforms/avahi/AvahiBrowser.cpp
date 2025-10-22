@@ -12,7 +12,7 @@ namespace mdnscpp
       ResultsChangedCallback onResultsChanged, const std::string &domain,
       size_t interfaceIndex, IPProtocol ipProtocol)
       : Browser(type, protocol, onResultsChanged, domain, interfaceIndex,
-            ipProtocol),
+            ipProtocol, platform->getEventLoop()),
         platform_(platform)
   {
     MDNSCPP_INFO << describe() << " created" << MDNSCPP_ENDL;

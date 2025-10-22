@@ -90,7 +90,8 @@ namespace mdnscpp
       ResultsChangedCallback onResultsChanged, const std::string &domain,
       size_t interfaceIndex, IPProtocol ipProtocol)
       : Browser(type, protocol, onResultsChanged,
-            domain.size() ? domain : defaultDomain, interfaceIndex, ipProtocol),
+            domain.size() ? domain : defaultDomain, interfaceIndex, ipProtocol,
+            platform->getEventLoop()),
         queue_(platform->getEventLoop()), platform_(platform),
         queryName_(getType() + "." + getProtocol() + "." + getDomain()),
         wqueryName_(toWideString(queryName_)),
