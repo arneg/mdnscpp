@@ -1,92 +1,11 @@
 import { afterEach, describe, test } from "node:test";
-import { equal } from "node:assert/strict";
-import { find, startBrowse } from "mdns-browse";
+import { startBrowse } from "mdns-browse";
 import { announceService } from "simple-mdns-announce";
-import { randomBytes } from "node:crypto";
-import { deepEqual } from "node:assert";
-import { platform } from "node:os";
-
-function normalizeTxtRecords(txtRecords) {
-  return (txtRecords || []).map(({ key, value }) => {
-    if (platform() === "win32") {
-      // the win32 API cannot differentiate between missing and empty
-      // values.
-      if (!value) value = "";
-    }
-    return { key, value };
-  });
-}
-
-function combineCleanup(...callbacks) {
-  return () => {
-    callbacks.forEach((cb) => {
-      try {
-        cb();
-      } catch (err) {
-        console.error("cleanup threw error", err);
-      }
-    });
-  };
-}
-
-async function waitFor(predicate, timeout) {
-  const signal = AbortSignal.timeout(timeout);
-  let timerId;
-  return new Promise((resolve, reject) => {
-    timerId = setInterval(() => {
-      if (signal.aborted) {
-        reject(signal.reason);
-      } else if (predicate()) {
-        resolve();
-      }
-    }, 1000);
-  }).finally(() => {
-    clearInterval(timerId);
-  });
-}
-
-function browseCriteriaFromService(service) {
-  const [type, protocol] = service.type.split(".");
-
-  return { type, protocol };
-}
-
-function compareServiceAndResult(service, result) {
-  const criteria = browseCriteriaFromService(service);
-  equal(result.type, criteria.type);
-  equal(result.protocol, criteria.protocol);
-  equal(result.port, service.port);
-
-  if (service.txtRecords) {
-    const tmp = Object.entries(service.txtRecords).map(([key, value]) => ({
-      key,
-      value,
-    }));
-
-    deepEqual(normalizeTxtRecords(tmp), normalizeTxtRecords(result.txtRecords));
-  }
-}
-
-async function findAndCompareService(service) {
-  const criteria = browseCriteriaFromService(service);
-  const result = await find(
-    criteria,
-    (result) => {
-      return result.name === service.name;
-    },
-    AbortSignal.timeout(60 * 1000)
-  );
-
-  compareServiceAndResult(service, result);
-}
-
-function randomizeServiceName(service) {
-  return {
-    ...service,
-    name: (service.name || "test") + "-" + randomBytes(8).toString("hex"),
-    port: 1 + Math.round(Math.random() * 0xfff1),
-  };
-}
+import {
+  findAndCompareService,
+  combineCleanup,
+  randomizeServiceName,
+} from "./helpers.js";
 
 const type = "_ttest._tcp";
 
