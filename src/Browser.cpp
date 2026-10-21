@@ -8,7 +8,9 @@ namespace mdnscpp
 {
   class ResultRemovalContext
   {
-    std::shared_ptr<Browser> browser_;
+    // Weak, so that a result does not keep its browser alive. The browser owns
+    // the resolves that own these contexts.
+    std::weak_ptr<Browser> browser_;
     std::shared_ptr<BrowseResult> result_;
 
   public:
@@ -18,7 +20,11 @@ namespace mdnscpp
     {
     }
 
-    ~ResultRemovalContext() { browser_->removeResult(result_); }
+    ~ResultRemovalContext()
+    {
+      if (auto browser = browser_.lock())
+        browser->removeResult(result_);
+    }
   };
 
   Browser::Browser(const std::string &type, const std::string &protocol,
