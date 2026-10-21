@@ -1,9 +1,7 @@
 #include "DnsSdRef.h"
 #include "DnsSdPlatform.h"
 
-#ifdef __cpp_exception
-#  include <stdexcept>
-#endif
+#include "../../debug.h"
 
 namespace mdnscpp
 {
@@ -37,18 +35,36 @@ namespace mdnscpp
     return platform_;
   }
 
+  void DnsSdRef::failFromCallback(DNSServiceErrorType error)
+  {
+    callbackError_ = error;
+  }
+
+  void DnsSdRef::onRefError(DNSServiceErrorType) {}
+
   void DnsSdRef::process()
   {
     if (sdRef_)
     {
-      DNSServiceProcessResult(sdRef_);
+      DNSServiceErrorType error = DNSServiceProcessResult(sdRef_);
+
+      if (error == kDNSServiceErr_NoError)
+        error = callbackError_;
+
+      if (error != kDNSServiceErr_NoError)
+      {
+        MDNSCPP_ERROR << "DNSServiceProcessResult() failed with " << error
+                      << MDNSCPP_ENDL;
+        callbackError_ = kDNSServiceErr_NoError;
+        // Without this the socket stays readable (POLLHUP) and the loop calls
+        // process() without end.
+        close();
+        onRefError(error);
+      }
     }
-#ifdef __cpp_exception
     else
     {
-
-      throw std::runtime_error("Calling process() on a closed ref.");
+      MDNSCPP_ERROR << "Calling process() on a closed ref." << MDNSCPP_ENDL;
     }
-#endif
   }
 } // namespace mdnscpp

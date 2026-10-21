@@ -33,6 +33,7 @@ namespace mdnscpp
 
   protected:
     std::shared_ptr<Browser> getSharedFromThis() override;
+    void onRefError(DNSServiceErrorType error) override;
 
   private:
     std::unordered_map<std::string, std::shared_ptr<DnsSdResolve>> resolves_;
