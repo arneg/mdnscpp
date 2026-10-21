@@ -57,14 +57,30 @@ namespace mdnscpp
       uint32_t interfaceIndexIndex, DNSServiceErrorType errorCode,
       const char *hostname, const struct sockaddr *address, uint32_t ttl)
   {
+    // kDNSServiceErr_NoSuchRecord is the usual reply for a host without an
+    // address of one family. Error replies carry no usable address.
+    if (errorCode != kDNSServiceErr_NoError || !address)
+    {
+      MDNSCPP_INFO << describe() << ".onResult() error " << errorCode
+                   << MDNSCPP_ENDL;
+      return;
+    }
+
     auto ipAddress = sockAddrToString(address);
     MDNSCPP_INFO << describe() << ".onResult(" << ipAddress << ")"
                  << MDNSCPP_ENDL;
 
+    if (ipAddress.empty())
+      return;
+
+    if (!(flags & kDNSServiceFlagsAdd))
+    {
+      resultRemovalContext_.erase(ipAddress);
+      return;
+    }
+
     auto resolve = getResolve();
     auto browser = resolve->getBrowser();
-
-    std::vector<TxtRecord> txtRecords;
 
     resultRemovalContext_[ipAddress] = browser->addResult(
         std::make_shared<BrowseResult>(resolve->getTxtRecords(),
