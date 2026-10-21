@@ -39,6 +39,8 @@ namespace mdnscpp
     const std::string type_;
     const std::string domain_;
     std::vector<TxtRecord> txtRecords_;
+    std::string host_;
+    uint16_t port_ = 0;
 
     std::shared_ptr<DnsSdGetAddrInfo> getaddrinfo_;
 

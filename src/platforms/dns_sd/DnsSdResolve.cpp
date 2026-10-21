@@ -152,15 +152,33 @@ namespace mdnscpp
                  << hosttarget << " with " << txtLen << " bytes of txt records "
                  << MDNSCPP_ENDL;
 
-    txtRecords_ = parseTxtRecords(txtRecord, txtLen);
+    auto txtRecords = parseTxtRecords(txtRecord, txtLen);
+    const uint16_t hostPort = htons(port);
+    const std::string host = hosttarget;
 
-    auto getaddrinfo = std::make_shared<DnsSdGetAddrInfo>(
-        shared_from_this(), interfaceIndexIndex, hosttarget, htons(port));
-    if (!getaddrinfo->ok())
-      return;
-
-    getaddrinfo_ = std::move(getaddrinfo);
-    close();
+    // The resolve stays open, so a later reply carries a changed TXT
+    // record, port, or host. TXT/port are stored first so a synchronous
+    // GetAddrInfo callback sees the new records.
+    if (!getaddrinfo_ || !getaddrinfo_->ok() || host != host_)
+    {
+      txtRecords_ = std::move(txtRecords);
+      port_ = hostPort;
+      host_ = host;
+      auto getaddrinfo = std::make_shared<DnsSdGetAddrInfo>(
+          shared_from_this(), interfaceIndexIndex, host_, port_);
+      if (!getaddrinfo->ok())
+      {
+        getaddrinfo_.reset();
+        return;
+      }
+      getaddrinfo_ = std::move(getaddrinfo);
+    }
+    else if (hostPort != port_ || txtRecords != txtRecords_)
+    {
+      txtRecords_ = std::move(txtRecords);
+      port_ = hostPort;
+      getaddrinfo_->refresh(port_);
+    }
   }
 
   void DnsSdResolve::resolveResultCallback(DNSServiceRef sdRef,

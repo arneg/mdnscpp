@@ -109,6 +109,12 @@ namespace mdnscpp
       return;
     }
 
+    addResult(hostname, ipAddress, sockAddrToIPProtocol(address));
+  }
+
+  void DnsSdGetAddrInfo::addResult(const std::string &hostname,
+      const std::string &ipAddress, IPProtocol ipProtocol)
+  {
     auto resolve = getResolve();
     if (!resolve)
       return;
@@ -117,11 +123,24 @@ namespace mdnscpp
     if (!browser)
       return;
 
-    resultRemovalContext_[ipAddress] = browser->addResult(
-        std::make_shared<BrowseResult>(resolve->getTxtRecords(),
-            browser->getType(), browser->getProtocol(), resolve->getName(),
-            resolve->getDomain(), hostname, ipAddress, resolve->getInterface(),
-            sockAddrToIPProtocol(address), port_));
+    // The new result is added before the old one is removed, so the address
+    // never drops out of the browser's results.
+    resultRemovalContext_[ipAddress] = Entry{hostname, ipProtocol,
+        browser->addResult(std::make_shared<BrowseResult>(
+            resolve->getTxtRecords(), browser->getType(),
+            browser->getProtocol(), resolve->getName(), resolve->getDomain(),
+            hostname, ipAddress, resolve->getInterface(), ipProtocol, port_))};
+  }
+
+  void DnsSdGetAddrInfo::refresh(uint16_t port)
+  {
+    port_ = port;
+
+    std::vector<std::pair<std::string, Entry>> entries(
+        resultRemovalContext_.begin(), resultRemovalContext_.end());
+
+    for (const auto &[ipAddress, entry] : entries)
+      addResult(entry.hostname, ipAddress, entry.ipProtocol);
   }
 
   DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfo(size_t interfaceIndex,
