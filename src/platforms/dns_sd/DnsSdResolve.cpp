@@ -140,12 +140,26 @@ namespace mdnscpp
                    << hosttarget << " with " << txtLen
                    << " bytes of txt records " << MDNSCPP_ENDL;
 
-      txtRecords_ = parseTxtRecords(txtRecord, txtLen);
+      auto txtRecords = parseTxtRecords(txtRecord, txtLen);
+      const uint16_t hostPort = htons(port);
+      const std::string host = hosttarget;
 
-      getaddrinfo_ = std::make_shared<DnsSdGetAddrInfo>(
-          shared_from_this(), interfaceIndexIndex, hosttarget, htons(port));
-
-      close();
+      // The resolve stays open, so a later reply carries a changed TXT
+      // record, port, or host.
+      if (!getaddrinfo_ || host != host_)
+      {
+        txtRecords_ = std::move(txtRecords);
+        port_ = hostPort;
+        host_ = host;
+        getaddrinfo_ = std::make_shared<DnsSdGetAddrInfo>(
+            shared_from_this(), interfaceIndexIndex, host_, port_);
+      }
+      else if (hostPort != port_ || txtRecords != txtRecords_)
+      {
+        txtRecords_ = std::move(txtRecords);
+        port_ = hostPort;
+        getaddrinfo_->refresh(port_);
+      }
     }
   }
 

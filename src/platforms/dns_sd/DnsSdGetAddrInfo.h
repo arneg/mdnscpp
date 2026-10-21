@@ -7,6 +7,7 @@
 #include <dns_sd.h>
 
 #include "DnsSdRef.h"
+#include <mdnscpp/Types.h>
 
 namespace mdnscpp
 {
@@ -22,15 +23,30 @@ namespace mdnscpp
 
     std::shared_ptr<DnsSdResolve> getResolve();
 
+    /**
+     * Replaces each result with one that has this port and the resolve's
+     * current TXT records. Used when a resolve reply changes them and the
+     * host stays the same.
+     */
+    void refresh(uint16_t port);
+
   private:
+    struct Entry
+    {
+      std::string hostname;
+      IPProtocol ipProtocol;
+      std::shared_ptr<void> removal;
+    };
+
     const std::weak_ptr<DnsSdResolve> resolve_;
     const size_t interfaceIndex_;
     const std::string hostname_;
-    const uint16_t port_;
+    uint16_t port_;
 
-    std::unordered_map<std::string, std::shared_ptr<void>>
-        resultRemovalContext_;
+    std::unordered_map<std::string, Entry> resultRemovalContext_;
 
+    void addResult(const std::string &hostname, const std::string &ipAddress,
+        IPProtocol ipProtocol);
     void onResult(DNSServiceFlags flags, uint32_t interfaceIndexIndex,
         DNSServiceErrorType errorCode, const char *hostname,
         const struct sockaddr *address, uint32_t ttl);
