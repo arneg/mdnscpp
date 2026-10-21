@@ -4,7 +4,13 @@ project(libmdnscpp LANGUAGES CXX)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-include(FindOrFetchLibuv)
+option(MDNSCPP_WITH_LIBUV "Find or fetch libuv and build the libuv event loop" ON)
+option(MDNSCPP_BUILD_EXAMPLE "Build libmdnscpp-example" ON)
+option(MDNSCPP_VERBOSE "Write debug output to stderr" ON)
+
+if(MDNSCPP_WITH_LIBUV)
+  include(FindOrFetchLibuv)
+endif()
 
 add_library(libmdnscpp)
 
@@ -33,7 +39,9 @@ target_sources(libmdnscpp PRIVATE
   src/throw.h
 )
 
-target_compile_definitions(libmdnscpp PRIVATE MDNSCPP_ENABLE_VERBOSE_DEBUG)
+if(MDNSCPP_VERBOSE)
+  target_compile_definitions(libmdnscpp PRIVATE MDNSCPP_ENABLE_VERBOSE_DEBUG)
+endif()
 
 find_library(LIB_DNS_SD NAMES dns_sd)
 find_library(LIB_AVAHI NAMES avahi-client)
@@ -47,7 +55,7 @@ if(NOT WIN32)
   target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_LOOP_POLL)
 endif()
 
-if(libuv_FOUND)
+if(MDNSCPP_WITH_LIBUV AND libuv_FOUND)
   message("using libuv")
   target_sources(libmdnscpp PRIVATE
     include/mdnscpp/LibuvLoop.h
@@ -119,4 +127,6 @@ endif()
 target_compile_features(libmdnscpp PUBLIC cxx_std_17)
 target_include_directories(libmdnscpp PUBLIC include)
 
-add_subdirectory(example)
+if(MDNSCPP_BUILD_EXAMPLE)
+  add_subdirectory(example)
+endif()
