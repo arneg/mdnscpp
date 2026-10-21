@@ -112,7 +112,7 @@ namespace mdnscpp
       const std::string &name, const std::string &type,
       const std::string &domain, void *context)
   {
-    DNSServiceRef sdRef;
+    DNSServiceRef sdRef = nullptr;
 
     auto error = DNSServiceResolve(&sdRef, 0,
         static_cast<uint32_t>(interfaceIndex), name.c_str(), type.c_str(),
@@ -155,8 +155,25 @@ namespace mdnscpp
       const char *hosttarget, uint16_t port, uint16_t txtLen,
       const unsigned char *txtRecord, void *context)
   {
-    reinterpret_cast<DnsSdResolve *>(context)->onResult(flags,
-        interfaceIndexIndex, errorCode, fullname, hosttarget, port, txtLen,
-        txtRecord);
+    // An exception must not unwind through DNSServiceProcessResult().
+#ifdef __cpp_exceptions
+    try
+    {
+#endif
+      reinterpret_cast<DnsSdResolve *>(context)->onResult(flags,
+          interfaceIndexIndex, errorCode, fullname, hosttarget, port, txtLen,
+          txtRecord);
+#ifdef __cpp_exceptions
+    }
+    catch (const std::exception &e)
+    {
+      MDNSCPP_ERROR << "resolveResultCallback() threw: " << e.what()
+                    << MDNSCPP_ENDL;
+    }
+    catch (...)
+    {
+      MDNSCPP_ERROR << "resolveResultCallback() threw." << MDNSCPP_ENDL;
+    }
+#endif
   }
 } // namespace mdnscpp

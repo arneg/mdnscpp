@@ -110,8 +110,25 @@ namespace mdnscpp
       DNSServiceErrorType errorCode, const char *serviceName,
       const char *regtype, const char *replyDomain, void *context)
   {
-    reinterpret_cast<DnsSdBrowser *>(context)->browseResult(
-        interfaceIndex, errorCode, flags, serviceName, regtype, replyDomain);
+    // An exception must not unwind through DNSServiceProcessResult().
+#ifdef __cpp_exceptions
+    try
+    {
+#endif
+      reinterpret_cast<DnsSdBrowser *>(context)->browseResult(
+          interfaceIndex, errorCode, flags, serviceName, regtype, replyDomain);
+#ifdef __cpp_exceptions
+    }
+    catch (const std::exception &e)
+    {
+      MDNSCPP_ERROR << "browseResultCallback() threw: " << e.what()
+                    << MDNSCPP_ENDL;
+    }
+    catch (...)
+    {
+      MDNSCPP_ERROR << "browseResultCallback() threw." << MDNSCPP_ENDL;
+    }
+#endif
   }
 
   std::shared_ptr<Browser> DnsSdBrowser::getSharedFromThis()

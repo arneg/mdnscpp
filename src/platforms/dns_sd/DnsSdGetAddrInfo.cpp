@@ -92,7 +92,7 @@ namespace mdnscpp
   DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfo(
       size_t interfaceIndex, const std::string &hostname, void *context)
   {
-    DNSServiceRef sdRef;
+    DNSServiceRef sdRef = nullptr;
 
     const auto error =
         DNSServiceGetAddrInfo(&sdRef, 0, static_cast<uint32_t>(interfaceIndex),
@@ -110,7 +110,24 @@ namespace mdnscpp
       DNSServiceErrorType errorCode, const char *hostname,
       const struct sockaddr *address, uint32_t ttl, void *context)
   {
-    reinterpret_cast<DnsSdGetAddrInfo *>(context)->onResult(
-        flags, interfaceIndexIndex, errorCode, hostname, address, ttl);
+    // An exception must not unwind through DNSServiceProcessResult().
+#ifdef __cpp_exceptions
+    try
+    {
+#endif
+      reinterpret_cast<DnsSdGetAddrInfo *>(context)->onResult(
+          flags, interfaceIndexIndex, errorCode, hostname, address, ttl);
+#ifdef __cpp_exceptions
+    }
+    catch (const std::exception &e)
+    {
+      MDNSCPP_ERROR << "getAddrInfoResultCallback() threw: " << e.what()
+                    << MDNSCPP_ENDL;
+    }
+    catch (...)
+    {
+      MDNSCPP_ERROR << "getAddrInfoResultCallback() threw." << MDNSCPP_ENDL;
+    }
+#endif
   }
 } // namespace mdnscpp
