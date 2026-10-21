@@ -11,6 +11,7 @@ add_library(libmdnscpp)
 target_sources(libmdnscpp PRIVATE
   include/mdnscpp/BrowseResult.h
   include/mdnscpp/Browser.h
+  include/mdnscpp/DnsSdError.h
   include/mdnscpp/Platform.h
   include/mdnscpp/EventLoop.h
   include/mdnscpp/CallQueue.h

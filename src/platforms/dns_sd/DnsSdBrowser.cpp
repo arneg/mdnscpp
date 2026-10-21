@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <dns_sd.h>
+#include <mdnscpp/DnsSdError.h>
 
 #include "../../debug.h"
 #include "../../throw.h"
@@ -57,7 +58,13 @@ namespace mdnscpp
             browseResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
+    {
+#ifdef __cpp_exceptions
+      throw DnsSdError("DNSServiceBrowse failed", error);
+#else
       MDNSCPP_THROW(std::runtime_error, "Failed.");
+#endif
+    }
 
     return sdRef;
   }
