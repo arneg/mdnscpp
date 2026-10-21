@@ -75,6 +75,7 @@ namespace mdnscpp
     {
       MDNSCPP_ERROR << describe() << " Service browsing failed with err "
                     << errorCode << MDNSCPP_ENDL;
+      failFromCallback(errorCode);
       return;
     }
 
@@ -135,5 +136,14 @@ namespace mdnscpp
   std::shared_ptr<Browser> DnsSdBrowser::getSharedFromThis()
   {
     return shared_from_this();
+  }
+
+  void DnsSdBrowser::onRefError(DNSServiceErrorType error)
+  {
+    MDNSCPP_ERROR << describe() << " stopped with error " << error
+                  << MDNSCPP_ENDL;
+    error_ = error;
+    resolves_.clear();
+    triggerNotifyResultsChanged();
   }
 } // namespace mdnscpp

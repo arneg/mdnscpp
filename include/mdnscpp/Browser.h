@@ -30,6 +30,13 @@ namespace mdnscpp
     IPProtocol getIPProtocol() const;
     const std::unordered_set<std::shared_ptr<BrowseResult>> getResults() const;
 
+    /**
+     * The platform error that stopped this browser, or 0 while it runs. A
+     * browser with an error has no results and does not browse again; create
+     * a new one to retry.
+     */
+    int getError() const;
+
     std::shared_ptr<void> addResult(std::shared_ptr<BrowseResult> result);
 
     void insertResult(std::shared_ptr<BrowseResult> result);
@@ -45,6 +52,7 @@ namespace mdnscpp
     const size_t interfaceIndex_;
     const IPProtocol ipProtocol_;
     bool notifyResultsTimerPending_ = false;
+    int error_ = 0;
 
     virtual std::shared_ptr<Browser> getSharedFromThis() = 0;
     void notifyResultsChanged();

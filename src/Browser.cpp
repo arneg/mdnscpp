@@ -67,6 +67,8 @@ namespace mdnscpp
     return results_;
   }
 
+  int Browser::getError() const { return error_; }
+
   std::shared_ptr<void> Browser::addResult(std::shared_ptr<BrowseResult> result)
   {
     insertResult(result);
