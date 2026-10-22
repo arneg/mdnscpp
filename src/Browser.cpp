@@ -57,8 +57,8 @@ namespace mdnscpp
 
   void Browser::insertResult(std::shared_ptr<BrowseResult> result)
   {
-
-    MDNSCPP_DEBUG_ASSERT(results_.find(result) != results_.end());
+    // A result must not be inserted twice.
+    MDNSCPP_DEBUG_ASSERT(results_.find(result) == results_.end());
     results_.insert(result);
     triggerNotifyResultsChanged();
   }
