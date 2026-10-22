@@ -25,6 +25,9 @@ add_executable(mdnscpp-tests
   "${MDNSCPP_SRC}/sockAddrToString.cpp"
   validationTest.cpp
   "${MDNSCPP_SRC}/validation.cpp"
+  browseResultTest.cpp
+  "${MDNSCPP_SRC}/BrowseResult.cpp"
+  "${MDNSCPP_SRC}/TxtRecord.cpp"
 )
 
 target_compile_features(mdnscpp-tests PRIVATE cxx_std_17)
