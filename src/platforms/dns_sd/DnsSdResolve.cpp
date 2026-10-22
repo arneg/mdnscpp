@@ -1,19 +1,25 @@
 #include "DnsSdResolve.h"
 
-#include "../../throw.h"
 #include "DnsSdBrowser.h"
 #include "DnsSdPlatform.h"
 
 #include "../../debug.h"
 
+#include <cstring>
 #include <netdb.h>
 
 namespace mdnscpp
 {
+  static const char *nz(const char *s) { return s ? s : "(null)"; }
+
   static std::vector<TxtRecord> parseTxtRecords(
       const unsigned char *src, uint16_t length)
   {
     std::vector<TxtRecord> result;
+
+    if (!src && length)
+      return result;
+
     uint16_t count = TXTRecordGetCount(length, src);
 
     result.reserve(count);
@@ -31,11 +37,10 @@ namespace mdnscpp
 
       if (error != kDNSServiceErr_NoError)
       {
-#ifdef __cpp_exceptions
-        throw std::logic_error("Should not happen.");
-#else
+        // A peer can send a malformed TXT item. Skip it.
+        MDNSCPP_ERROR << "Skipping malformed TXT record at index " << index
+                      << " (error " << error << ")." << MDNSCPP_ENDL;
         continue;
-#endif
       }
 
       record.key.resize(strlen(record.key.c_str()));
@@ -86,13 +91,7 @@ namespace mdnscpp
 
   std::shared_ptr<DnsSdBrowser> DnsSdResolve::getBrowser() const
   {
-    auto browser = browser_.lock();
-    if (!browser)
-    {
-      MDNSCPP_THROW(
-          std::logic_error, "DnsSdResolve detached from parent DnsSdBrowser");
-    }
-    return browser;
+    return browser_.lock();
   }
 
   const std::string &DnsSdResolve::getName() const { return name_; }
@@ -112,14 +111,19 @@ namespace mdnscpp
       const std::string &name, const std::string &type,
       const std::string &domain, void *context)
   {
-    DNSServiceRef sdRef;
+    DNSServiceRef sdRef = nullptr;
 
     auto error = DNSServiceResolve(&sdRef, 0,
         static_cast<uint32_t>(interfaceIndex), name.c_str(), type.c_str(),
         domain.c_str(), resolveResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
-      MDNSCPP_THROW(std::runtime_error, "Failed.");
+    {
+      MDNSCPP_ERROR << "DNSServiceResolve(" << name << ", " << type << ", "
+                    << domain << ") failed with error " << error
+                    << MDNSCPP_ENDL;
+      return nullptr;
+    }
 
     return sdRef;
   }
@@ -133,20 +137,29 @@ namespace mdnscpp
     {
       MDNSCPP_ERROR << describe() << " failed with error " << errorCode
                     << MDNSCPP_ENDL;
+      return;
     }
-    else
+
+    if (!hosttarget)
     {
-      MDNSCPP_INFO << describe() << "Resolved " << fullname << " to "
-                   << hosttarget << " with " << txtLen
-                   << " bytes of txt records " << MDNSCPP_ENDL;
-
-      txtRecords_ = parseTxtRecords(txtRecord, txtLen);
-
-      getaddrinfo_ = std::make_shared<DnsSdGetAddrInfo>(
-          shared_from_this(), interfaceIndexIndex, hosttarget, htons(port));
-
-      close();
+      MDNSCPP_ERROR << describe() << " resolve result is missing a hostname."
+                    << MDNSCPP_ENDL;
+      return;
     }
+
+    MDNSCPP_INFO << describe() << "Resolved " << nz(fullname) << " to "
+                 << hosttarget << " with " << txtLen << " bytes of txt records "
+                 << MDNSCPP_ENDL;
+
+    txtRecords_ = parseTxtRecords(txtRecord, txtLen);
+
+    auto getaddrinfo = std::make_shared<DnsSdGetAddrInfo>(
+        shared_from_this(), interfaceIndexIndex, hosttarget, htons(port));
+    if (!getaddrinfo->ok())
+      return;
+
+    getaddrinfo_ = std::move(getaddrinfo);
+    close();
   }
 
   void DnsSdResolve::resolveResultCallback(DNSServiceRef sdRef,

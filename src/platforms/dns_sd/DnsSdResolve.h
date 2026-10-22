@@ -24,6 +24,7 @@ namespace mdnscpp
     std::string describe() const;
     std::shared_ptr<DnsSdBrowser> getBrowser() const;
     using DnsSdRef::getPlatform;
+    using DnsSdRef::ok;
 
     const std::string &getName() const;
     const std::string &getType() const;

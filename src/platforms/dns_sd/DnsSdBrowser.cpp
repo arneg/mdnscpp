@@ -1,13 +1,13 @@
 #include "DnsSdBrowser.h"
 
 #include "../../debug.h"
-#include <stdexcept>
-
-#include <dns_sd.h>
-
-#include "../../debug.h"
 #include "../../throw.h"
 #include "DnsSdPlatform.h"
+
+#include <mdnscpp/Error.h>
+
+#include <dns_sd.h>
+#include <string>
 
 namespace mdnscpp
 {
@@ -57,7 +57,11 @@ namespace mdnscpp
             browseResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
-      MDNSCPP_THROW(std::runtime_error, "Failed.");
+    {
+      MDNSCPP_THROW(
+          PlatformError, std::string("DNSServiceBrowse failed with error ") +
+                             std::to_string(error));
+    }
 
     return sdRef;
   }
@@ -70,6 +74,15 @@ namespace mdnscpp
     {
       MDNSCPP_ERROR << describe() << " Service browsing failed with err "
                     << errorCode << MDNSCPP_ENDL;
+      return;
+    }
+
+    if (!serviceName || !regtype || !replyDomain)
+    {
+      MDNSCPP_ERROR << describe()
+                    << " ignoring browse event with a missing name, type or "
+                       "domain."
+                    << MDNSCPP_ENDL;
       return;
     }
 
@@ -91,8 +104,11 @@ namespace mdnscpp
                    << "regtype " << regtype << ", "
                    << "replyDomain " << replyDomain << MDNSCPP_ENDL;
 
-      resolves_[key] = std::make_shared<DnsSdResolve>(shared_from_this(),
+      auto resolve = std::make_shared<DnsSdResolve>(shared_from_this(),
           interfaceIndex, serviceName, regtype, replyDomain);
+      if (!resolve->ok())
+        return;
+      resolves_[key] = std::move(resolve);
     }
     else
     {

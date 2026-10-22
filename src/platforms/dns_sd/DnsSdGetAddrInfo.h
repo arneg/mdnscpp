@@ -21,6 +21,7 @@ namespace mdnscpp
     std::string describe() const;
 
     std::shared_ptr<DnsSdResolve> getResolve();
+    using DnsSdRef::ok;
 
   private:
     const std::weak_ptr<DnsSdResolve> resolve_;
@@ -37,6 +38,9 @@ namespace mdnscpp
     static DNSServiceRef startGetAddrInfo(size_t interfaceIndex,
         DNSServiceProtocol protocol, const std::string &hostname,
         void *context);
+    static DNSServiceRef startGetAddrInfoFromResolve(
+        const std::shared_ptr<DnsSdResolve> &resolve, size_t interfaceIndex,
+        const std::string &hostname, void *context);
     static void getAddrInfoResultCallback(DNSServiceRef sdRef,
         DNSServiceFlags flags, uint32_t interfaceIndexIndex,
         DNSServiceErrorType errorCode, const char *hostname,

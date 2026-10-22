@@ -2,7 +2,6 @@
 
 #include "../../sockAddrToIPProtocol.h"
 #include "../../sockAddrToString.h"
-#include "../../throw.h"
 #include "DnsSdBrowser.h"
 #include "DnsSdPlatform.h"
 #include "DnsSdResolve.h"
@@ -10,7 +9,6 @@
 #include <mdnscpp/BrowseResult.h>
 
 #include "../../debug.h"
-#include <stdexcept>
 
 #include <netdb.h>
 
@@ -18,6 +16,8 @@
 
 namespace mdnscpp
 {
+  static const char *nz(const char *s) { return s ? s : "(null)"; }
+
   static DNSServiceProtocol getDnsServiceProtocol(IPProtocol proto)
   {
     switch (proto)
@@ -33,12 +33,16 @@ namespace mdnscpp
     return 0;
   }
 
+  static bool isInetAddress(const struct sockaddr *address)
+  {
+    return address &&
+           (address->sa_family == AF_INET || address->sa_family == AF_INET6);
+  }
+
   DnsSdGetAddrInfo::DnsSdGetAddrInfo(std::shared_ptr<DnsSdResolve> resolve,
       size_t interfaceIndex, const std::string &hostname, uint16_t port)
-      : DnsSdRef(resolve->getPlatform(),
-            startGetAddrInfo(interfaceIndex,
-                getDnsServiceProtocol(resolve->getBrowser()->getIPProtocol()),
-                hostname, this)),
+      : DnsSdRef(resolve->getPlatform(), startGetAddrInfoFromResolve(resolve,
+                                             interfaceIndex, hostname, this)),
         resolve_(resolve), interfaceIndex_(interfaceIndex), hostname_(hostname),
         port_(port)
   {
@@ -63,17 +67,30 @@ namespace mdnscpp
 
   std::shared_ptr<DnsSdResolve> DnsSdGetAddrInfo::getResolve()
   {
-    auto result = resolve_.lock();
-    if (!result)
-      MDNSCPP_THROW(std::logic_error,
-          "DnsSdGetAddrInfo() detached from parent DnsSdGetResolve().");
-    return result;
+    return resolve_.lock();
   }
 
   void DnsSdGetAddrInfo::onResult(DNSServiceFlags flags,
       uint32_t interfaceIndexIndex, DNSServiceErrorType errorCode,
       const char *hostname, const struct sockaddr *address, uint32_t ttl)
   {
+    // Apple documents the other parameters as undefined when errorCode is
+    // non-zero (e.g. a host with no AAAA record).
+    if (errorCode != kDNSServiceErr_NoError)
+    {
+      MDNSCPP_ERROR << describe() << ".onResult() failed with error "
+                    << errorCode << MDNSCPP_ENDL;
+      return;
+    }
+
+    if (!isInetAddress(address))
+    {
+      MDNSCPP_ERROR << describe()
+                    << ".onResult() ignored: missing or non-IP address."
+                    << MDNSCPP_ENDL;
+      return;
+    }
+
     auto ipAddress = sockAddrToString(address);
     MDNSCPP_INFO << describe() << ".onResult(" << ipAddress << ")"
                  << MDNSCPP_ENDL;
@@ -86,10 +103,20 @@ namespace mdnscpp
       return;
     }
 
-    auto resolve = getResolve();
-    auto browser = resolve->getBrowser();
+    if (!hostname)
+    {
+      MDNSCPP_ERROR << describe() << ".onResult() ignored: missing hostname."
+                    << MDNSCPP_ENDL;
+      return;
+    }
 
-    std::vector<TxtRecord> txtRecords;
+    auto resolve = getResolve();
+    if (!resolve)
+      return;
+
+    auto browser = resolve->getBrowser();
+    if (!browser)
+      return;
 
     resultRemovalContext_[ipAddress] = browser->addResult(
         std::make_shared<BrowseResult>(resolve->getTxtRecords(),
@@ -101,16 +128,37 @@ namespace mdnscpp
   DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfo(size_t interfaceIndex,
       DNSServiceProtocol protocol, const std::string &hostname, void *context)
   {
-    DNSServiceRef sdRef;
+    DNSServiceRef sdRef = nullptr;
 
     const auto error =
         DNSServiceGetAddrInfo(&sdRef, 0, static_cast<uint32_t>(interfaceIndex),
             protocol, hostname.c_str(), getAddrInfoResultCallback, context);
 
     if (kDNSServiceErr_NoError != error)
-      MDNSCPP_THROW(std::runtime_error, "Failed.");
+    {
+      MDNSCPP_ERROR << "DNSServiceGetAddrInfo(" << hostname
+                    << ") failed with error " << error << MDNSCPP_ENDL;
+      return nullptr;
+    }
 
     return sdRef;
+  }
+
+  DNSServiceRef DnsSdGetAddrInfo::startGetAddrInfoFromResolve(
+      const std::shared_ptr<DnsSdResolve> &resolve, size_t interfaceIndex,
+      const std::string &hostname, void *context)
+  {
+    auto browser = resolve ? resolve->getBrowser() : nullptr;
+    if (!browser)
+    {
+      MDNSCPP_ERROR << "DnsSdGetAddrInfo(" << hostname
+                    << ") cannot start: parent browser is gone."
+                    << MDNSCPP_ENDL;
+      return nullptr;
+    }
+
+    return startGetAddrInfo(interfaceIndex,
+        getDnsServiceProtocol(browser->getIPProtocol()), hostname, context);
   }
 
   void DnsSdGetAddrInfo::getAddrInfoResultCallback(DNSServiceRef sdRef,

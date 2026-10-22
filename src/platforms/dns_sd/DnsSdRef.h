@@ -20,6 +20,10 @@ namespace mdnscpp
 
     std::shared_ptr<DnsSdPlatform> getPlatform() const;
 
+    // False if the underlying DNSServiceRef was never created or has been
+    // closed. A failed DNSService* call leaves the object in this state.
+    bool ok() const { return sdRef_ != nullptr; }
+
   protected:
     std::shared_ptr<DnsSdPlatform> platform_;
     std::shared_ptr<EventLoop::Watch> watch_;
