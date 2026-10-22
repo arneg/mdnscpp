@@ -19,7 +19,9 @@ on:
       - "include/**"
   push:
     # Path filters are not applied to tag pushes.
-    branches: [main]
+    # TEMPORARY: the CI bring-up branch is listed so that pushing it runs the
+    # workflow without a pull request. Remove before merging.
+    branches: [main, taskbranch/ci-prebuild]
     tags: ["mdns-browse-v*"]
     paths:
       - ".github/workflows/mdns-browse-build.yml"
