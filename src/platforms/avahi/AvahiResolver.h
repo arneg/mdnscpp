@@ -25,6 +25,11 @@ namespace mdnscpp
     std::string describe() const;
     std::shared_ptr<AvahiBrowser> getBrowser() const;
 
+    // Starts the Avahi resolver. Must be called after the object is owned by
+    // a shared_ptr (so that callbacks can use weak_from_this()). Returns
+    // false if the resolver cannot be created. Does not throw.
+    bool start();
+
   private:
     const std::weak_ptr<AvahiBrowser> browser_;
     const std::string name_;

@@ -23,6 +23,12 @@ struct AvahiTimeout
 
 namespace mdnscpp
 {
+  static std::string failedToConnectMessage(int err)
+  {
+    return std::string("Failed to connect to the Avahi daemon: ") +
+           avahi_strerror(err);
+  }
+
   static EventLoop::EventType fromAvahiEvent(AvahiWatchEvent event)
   {
     EventLoop::EventType result;
@@ -104,7 +110,8 @@ namespace mdnscpp
         .timeout_free = avahiPollTimeoutFree,
     };
 
-    startClient();
+    if (!startClient())
+      MDNSCPP_THROW(PlatformError, failedToConnectMessage(lastClientError_));
   }
 
   AvahiPlatform::~AvahiPlatform()
@@ -119,11 +126,19 @@ namespace mdnscpp
       Browser::ResultsChangedCallback onResultsChanged,
       const std::string &domain, size_t interfaceIndex, IPProtocol ipProtocol)
   {
+    if (!avahiClient_)
+      MDNSCPP_THROW(PlatformError, failedToConnectMessage(lastClientError_));
+
     auto browser = std::make_shared<AvahiBrowser>(shared_from_this(), type,
         protocol, onResultsChanged, domain, interfaceIndex, ipProtocol);
 
-    if (!paused_)
-      browser->unpause();
+    // Synchronous path: a failure here is reported to the caller.
+    if (!paused_ && !browser->unpause())
+    {
+      MDNSCPP_THROW(PlatformError,
+          std::string("Failed to create avahi service browser: ") +
+              avahi_strerror(avahi_client_errno(avahiClient_)));
+    }
 
     browsers_.push_back(browser.get());
 
@@ -132,7 +147,7 @@ namespace mdnscpp
 
   AvahiClient *AvahiPlatform::getAvahiClient() const { return avahiClient_; }
 
-  void AvahiPlatform::startClient()
+  bool AvahiPlatform::startClient()
   {
     int err = AVAHI_OK;
 
@@ -143,11 +158,15 @@ namespace mdnscpp
     {
       // AVAHI_CLIENT_NO_FAIL only covers a missing Avahi daemon. If the
       // system D-Bus cannot be reached at all (e.g. in a container) the
-      // client cannot be created.
-      MDNSCPP_THROW(PlatformError,
-          std::string("Failed to connect to the Avahi daemon: ") +
-              avahi_strerror(err));
+      // client cannot be created. Do not throw: this is also called from
+      // the Avahi client callback (see pause()).
+      lastClientError_ = err;
+      MDNSCPP_ERROR << failedToConnectMessage(err) << MDNSCPP_ENDL;
+      return false;
     }
+
+    lastClientError_ = AVAHI_OK;
+    return true;
   }
 
   void AvahiPlatform::stopClient()
@@ -169,6 +188,9 @@ namespace mdnscpp
       browser->pause();
     }
     stopClient();
+    // Restarting can fail (D-Bus gone). Log and leave the client null;
+    // createBrowser() will surface this as a PlatformError. Browsers stay
+    // paused.
     startClient();
   }
 
@@ -176,9 +198,16 @@ namespace mdnscpp
   {
     if (!paused_)
       return;
+    if (!avahiClient_)
+    {
+      MDNSCPP_ERROR << "AvahiPlatform::unpause(): no Avahi client."
+                    << MDNSCPP_ENDL;
+      return;
+    }
     paused_ = false;
     for (AvahiBrowser *browser : browsers_)
     {
+      // Failure is logged inside unpause(). Keep going for the others.
       browser->unpause();
     }
   }

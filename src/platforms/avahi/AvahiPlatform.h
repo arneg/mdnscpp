@@ -7,6 +7,7 @@
 
 #include <avahi-client/client.h>
 #include <avahi-client/lookup.h>
+#include <avahi-common/error.h>
 
 namespace mdnscpp
 {
@@ -37,8 +38,14 @@ namespace mdnscpp
     struct AvahiPoll avahiPoll_;
     AvahiClient *avahiClient_ = nullptr;
     bool paused_ = true;
+    // Avahi error from the last failed startClient(). AVAHI_OK after a
+    // successful start. Used by createBrowser() after a failed reconnect.
+    int lastClientError_ = AVAHI_OK;
 
-    void startClient();
+    // Returns false and sets lastClientError_ if the client cannot be
+    // created. Does not throw: it is also called from the Avahi client
+    // callback.
+    bool startClient();
     void stopClient();
     void pause();
     void unpause();

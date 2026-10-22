@@ -3,7 +3,8 @@
 #include "AvahiUtils.h"
 
 #include "../../debug.h"
-#include "../../throw.h"
+
+#include <avahi-common/error.h>
 
 namespace mdnscpp
 {
@@ -62,11 +63,22 @@ namespace mdnscpp
     MDNSCPP_INFO << describe() << " stopped" << MDNSCPP_ENDL;
   }
 
-  void AvahiBrowser::unpause()
+  bool AvahiBrowser::unpause()
   {
+    if (avahiBrowser_)
+      return true;
+
+    AvahiClient *client = getAvahiClient();
+    if (!client)
+    {
+      MDNSCPP_ERROR << describe() << " cannot start: no Avahi client."
+                    << MDNSCPP_ENDL;
+      return false;
+    }
+
     std::string tmp = getType() + "." + getProtocol();
 
-    avahiBrowser_ = avahi_service_browser_new(getAvahiClient(),
+    avahiBrowser_ = avahi_service_browser_new(client,
         toAvahiInterfaceIndex(getInterface()), toAvahiProtocol(getIPProtocol()),
         tmp.c_str(), getDomain().c_str(), static_cast<AvahiLookupFlags>(0),
         avahiServiceBrowserCallback, this);
@@ -77,10 +89,15 @@ namespace mdnscpp
                  << MDNSCPP_ENDL;
 
     if (!avahiBrowser_)
-      MDNSCPP_THROW(
-          std::runtime_error, "Failed to create avahi service browser.");
+    {
+      MDNSCPP_ERROR << describe() << " failed to create avahi service browser: "
+                    << avahi_strerror(avahi_client_errno(client))
+                    << MDNSCPP_ENDL;
+      return false;
+    }
 
     MDNSCPP_INFO << describe() << " started" << MDNSCPP_ENDL;
+    return true;
   }
 
   void AvahiBrowser::resultCallback(AvahiIfIndex interfaceIndex,
@@ -89,6 +106,15 @@ namespace mdnscpp
   {
     if (event == AVAHI_BROWSER_NEW || event == AVAHI_BROWSER_REMOVE)
     {
+      if (!name || !type || !domain)
+      {
+        MDNSCPP_ERROR << describe()
+                      << " ignoring browse event with a missing name, type or "
+                         "domain."
+                      << MDNSCPP_ENDL;
+        return;
+      }
+
       std::string key;
 
       key.reserve(32);
@@ -110,8 +136,14 @@ namespace mdnscpp
         if (resolvers_.find(key) != resolvers_.end())
           return;
 
-        resolvers_[key] = std::make_shared<AvahiResolver>(shared_from_this(),
+        // start() after make_shared so that a synchronous Avahi callback can
+        // use weak_from_this(). A failed start is skipped: the service will
+        // not appear in the results.
+        auto resolver = std::make_shared<AvahiResolver>(shared_from_this(),
             name, type, domain, interfaceIndex, fromAvahiProtocol(protocol));
+        if (!resolver->start())
+          return;
+        resolvers_[key] = std::move(resolver);
       }
       else
       {

@@ -26,7 +26,10 @@ namespace mdnscpp
     std::string describe() const;
 
     void pause();
-    void unpause();
+    // Starts the Avahi service browser. Returns false if it cannot be
+    // created (no client, or Avahi rejected the query). Does not throw:
+    // it is also called from the Avahi client callback.
+    bool unpause();
 
     AvahiClient *getAvahiClient() const;
 
