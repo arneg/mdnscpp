@@ -118,12 +118,21 @@ namespace mdnscpp
 
     DNS_SERVICE_RESOLVE_REQUEST request;
 
-    std::wstring wideQueryName = toWideString(queryName_);
+    // queryName_ originates from the network, so this can fail.
+    auto wideQueryName = toWideString(queryName_);
+    if (!wideQueryName)
+    {
+      MDNSCPP_ERROR << describe()
+                    << " Query name has invalid encoding. Not resolving."
+                    << MDNSCPP_ENDL;
+      state_ = State::FAILED;
+      return;
+    }
 
     request.Version = DNS_QUERY_REQUEST_VERSION1;
     request.InterfaceIndex =
         static_cast<unsigned long>(browser_.getInterface());
-    request.QueryName = wideQueryName.data();
+    request.QueryName = wideQueryName->data();
     request.pQueryContext = this;
     request.pResolveCompletionCallback = DnsServiceResolveComplete;
 
@@ -172,11 +181,26 @@ namespace mdnscpp
     if (pInstance->ip6Address)
       ipv4.emplace(pInstance->ip6Address, pInstance->wPort);
 
+    // Everything in pInstance comes from the network. Strings with invalid
+    // encoding are dropped: if the hostname or instance name is invalid the
+    // whole result is ignored, an invalid TXT entry is skipped.
     std::vector<TxtRecord> txtRecords;
-    std::string hostname = fromWideString(pInstance->pszHostName);
+    auto optHostname = fromWideString(pInstance->pszHostName);
     size_t interfaceIndex = pInstance->dwInterfaceIndex;
-    std::string instanceName = fromWideString(pInstance->pszInstanceName);
+    auto optInstanceName = fromWideString(pInstance->pszInstanceName);
     uint16_t port = pInstance->wPort;
+
+    if (!optHostname || !optInstanceName)
+    {
+      MDNSCPP_ERROR << describe()
+                    << " Ignoring resolve result with invalid hostname or "
+                       "instance name encoding."
+                    << MDNSCPP_ENDL;
+      return;
+    }
+
+    std::string hostname = std::move(*optHostname);
+    std::string instanceName = std::move(*optInstanceName);
 
     if (instanceName != queryName_)
     {
@@ -186,20 +210,36 @@ namespace mdnscpp
       return;
     }
 
-    txtRecords.reserve(pInstance->dwPropertyCount);
-    for (DWORD i = 0; i < pInstance->dwPropertyCount; i++)
+    // Do not trust the property count if the arrays are missing.
+    const DWORD propertyCount =
+        pInstance->keys ? pInstance->dwPropertyCount : 0;
+
+    txtRecords.reserve(propertyCount);
+    for (DWORD i = 0; i < propertyCount; i++)
     {
       TxtRecord record;
 
-      record.key = fromWideString(pInstance->keys[i]);
+      auto key = fromWideString(pInstance->keys[i]);
+      // A missing value (null pointer) yields an empty string, which means
+      // "key without value". An invalid encoding drops the whole entry.
+      auto value =
+          fromWideString(pInstance->values ? pInstance->values[i] : nullptr);
 
-      if (!record.key.size())
+      if (!key || !value)
+      {
+        MDNSCPP_ERROR << describe()
+                      << " Ignoring TXT entry with invalid encoding."
+                      << MDNSCPP_ENDL;
+        continue;
+      }
+
+      if (key->empty())
         continue;
 
-      std::string tmp = fromWideString(pInstance->values[i]);
+      record.key = std::move(*key);
 
-      if (tmp.size())
-        record.value = std::move(tmp);
+      if (value->size())
+        record.value = std::move(*value);
 
       txtRecords.push_back(std::move(record));
     }

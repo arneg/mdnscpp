@@ -119,3 +119,8 @@ target_compile_features(libmdnscpp PUBLIC cxx_std_17)
 target_include_directories(libmdnscpp PUBLIC include)
 
 add_subdirectory(example)
+
+option(MDNSCPP_BUILD_TESTS "Build the C++ tests (see tests/CMakeLists.txt)" OFF)
+if(MDNSCPP_BUILD_TESTS)
+  add_subdirectory(tests)
+endif()

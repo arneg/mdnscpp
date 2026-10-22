@@ -27,9 +27,17 @@ namespace mdnscpp
       switch (entry->wType)
       {
       case DNS_TYPE_PTR: {
+        // The name comes from the network. Drop records with invalid
+        // encoding instead of failing.
         // FIXME: why does this select the const char * version??
-        result.queryName =
-            fromWideString((const wchar_t *)entry->Data.PTR.pNameHost);
+        auto name = fromWideString((const wchar_t *)entry->Data.PTR.pNameHost);
+        if (!name)
+        {
+          MDNSCPP_ERROR << "Ignoring PTR record with invalid encoding."
+                        << MDNSCPP_ENDL;
+          break;
+        }
+        result.queryName = std::move(*name);
         result.ttl = entry->dwTtl;
         MDNSCPP_INFO << "hostname: '" << result.queryName << "'"
                      << MDNSCPP_ENDL;
@@ -55,8 +63,15 @@ namespace mdnscpp
       }
       case DNS_TYPE_SRV: {
         // FIXME: why does this select the const char * version??
-        result.hostname =
+        auto hostname =
             fromWideString((const wchar_t *)entry->Data.SRV.pNameTarget);
+        if (!hostname)
+        {
+          MDNSCPP_ERROR << "Ignoring SRV record with invalid encoding."
+                        << MDNSCPP_ENDL;
+          break;
+        }
+        result.hostname = std::move(*hostname);
         result.port = entry->Data.SRV.wPort;
         MDNSCPP_INFO << "srv: '" << result.hostname << "' port: " << result.port
                      << MDNSCPP_ENDL;
@@ -85,6 +100,20 @@ namespace mdnscpp
 
   static const std::string defaultDomain = "local";
 
+  // type, protocol and domain are supplied by the caller (not received from
+  // the network), so invalid UTF-8 is an invalid argument.
+  static std::wstring queryNameToWide(const std::string &queryName)
+  {
+    auto wide = toWideString(queryName);
+    if (!wide)
+    {
+      MDNSCPP_THROW(std::invalid_argument,
+          "Browse type, protocol or domain is not valid UTF-8.");
+      return std::wstring();
+    }
+    return std::move(*wide);
+  }
+
   Win32Browser::Win32Browser(std::shared_ptr<Win32Platform> platform,
       const std::string &type, const std::string &protocol,
       ResultsChangedCallback onResultsChanged, const std::string &domain,
@@ -94,7 +123,7 @@ namespace mdnscpp
             platform->getEventLoop()),
         queue_(platform->getEventLoop()), platform_(platform),
         queryName_(getType() + "." + getProtocol() + "." + getDomain()),
-        wqueryName_(toWideString(queryName_)),
+        wqueryName_(queryNameToWide(queryName_)),
         refreshTimer_(
             platform->getEventLoop().createTimeout(EventLoop::TimeoutDisabled{},
                 [&](EventLoop::Timeout &) { refresh(); })),

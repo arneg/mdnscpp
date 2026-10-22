@@ -1,0 +1,65 @@
+name: C++ tests
+
+# Builds and runs the small C++-only test suite in tests/ on every platform
+# whose platform code is covered by it (see tests/CMakeLists.txt). The suite
+# compiles the sources under test directly and needs no libuv/avahi/etc.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cpp-tests.yml"
+      - "CMakeLists.txt"
+      - "src/**"
+      - "include/**"
+      - "tests/**"
+  push:
+    # All branches (no branch filter), so that pushes are tested without
+    # needing a pull request.
+    paths:
+      - ".github/workflows/cpp-tests.yml"
+      - "CMakeLists.txt"
+      - "src/**"
+      - "include/**"
+      - "tests/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux-x64, macos-arm64, win32-x64, win32-arm64]
+        include:
+          - target: linux-x64
+            runner: ubuntu-latest
+          - target: macos-arm64
+            runner: macos-latest
+          - target: win32-x64
+            runner: windows-latest
+          - target: win32-arm64
+            runner: windows-11-arm
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure
+        run: cmake -S tests -B build/tests
+
+      - name: Build
+        run: cmake --build build/tests --config Release
+
+      # -C is required for the multi-config generators (Visual Studio) and
+      # ignored by the others.
+      - name: Test
+        run: ctest --test-dir build/tests -C Release --output-on-failure
