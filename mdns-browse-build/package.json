@@ -10,7 +10,8 @@
     "prebuildify": "prebuildify --napi --strip --name mdns-browse",
     "link-local": "node scripts/link-local.js",
     "test": "node --test --test-concurrency 1",
-    "smoke": "node scripts/smoke.js"
+    "smoke": "node scripts/smoke.js",
+    "assemble": "node scripts/assemble.js"
   },
   "engines": {
     "node": ">=22"

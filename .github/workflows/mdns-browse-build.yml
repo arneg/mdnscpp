@@ -1,9 +1,10 @@
 name: mdns-browse prebuilds
 
 # Builds the mdns-browse native addon on every supported platform, smoke-tests
-# the result and uploads one artifact per target. Nothing here signs or
-# publishes anything; see mdns-browse-build/scripts/assemble.js (maintainer
-# machine) for turning the artifacts into the npm package.
+# the result and uploads one artifact per target. package-check then combines
+# those into an unsigned npm tarball (mdns-browse-package-unsigned). Nothing
+# here signs or publishes; the maintainer downloads that tarball and runs
+# assemble.js --from-tarball --sign on a Mac.
 #
 # Tag runs (mdns-browse-vX.Y.Z) additionally attest build provenance.
 
@@ -285,8 +286,9 @@ jobs:
             sh -c 'apk add --no-cache avahi-libs && npm ci --ignore-scripts && npm run smoke -w mdns-browse-build'
 
   # ---------------------------------------------------------------------------
-  # Put all artifacts together exactly like the maintainer will and check that
-  # the package is complete and contains nothing unexpected.
+  # Combine the per-target artifacts into the unsigned npm tarball the
+  # maintainer will download, sign, and publish. Do not publish this artifact
+  # as-is: darwin binaries are only ad-hoc signed.
   # ---------------------------------------------------------------------------
   package-check:
     name: assemble and check package
@@ -299,6 +301,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.BUILD_NODE_VERSION }}
+
+      - run: npm ci --ignore-scripts
 
       - name: Check tag matches package version
         if: startsWith(github.ref, 'refs/tags/mdns-browse-v')
@@ -313,38 +317,25 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           pattern: prebuild-*
-          merge-multiple: true
-          path: mdns-browse/prebuilds
+          path: mdns-browse-build/dist/from-ci
 
-      - name: Check prebuild set
+      - name: Install Avahi client library
         run: |
-          cat > expected.txt <<'EOF'
-          darwin-arm64/mdns-browse.node
-          darwin-x64/mdns-browse.node
-          linux-arm64/mdns-browse.glibc.node
-          linux-arm64/mdns-browse.musl.node
-          linux-x64/mdns-browse.glibc.node
-          linux-x64/mdns-browse.musl.node
-          win32-arm64/mdns-browse.node
-          win32-x64/mdns-browse.node
-          EOF
-          (cd mdns-browse/prebuilds && find . -type f | sed 's|^\./||' | sort) > actual.txt
-          diff -u expected.txt actual.txt
+          sudo apt-get update
+          sudo apt-get install -y libavahi-client3
 
-      - name: Pack and check contents
+      - name: Assemble package
         run: |
-          mkdir -p dist
-          (cd mdns-browse && npm pack --pack-destination ../dist)
-          tarball="$(ls dist/mdns-browse-*.tgz)"
-          tar -tzf "$tarball" | sort | tee contents.txt
-          # Only the files that belong to the package may be shipped.
-          if grep -vE '^package/(LICENSE|README\.md|index\.js|index\.d\.ts|package\.json|prebuilds/.+\.node)$' contents.txt; then
-            echo "unexpected files in tarball" >&2
-            exit 1
+          tag_args=()
+          if [[ "${GITHUB_REF}" == refs/tags/mdns-browse-v* ]]; then
+            tag_args=(--tag "${GITHUB_REF_NAME}")
           fi
+          npm run assemble -w mdns-browse-build -- \
+            --from-dir dist/from-ci \
+            "${tag_args[@]}"
 
       - uses: actions/upload-artifact@v7
         with:
           name: mdns-browse-package-unsigned
-          path: dist/*.tgz
+          path: mdns-browse-build/dist/*.tgz
           if-no-files-found: error
