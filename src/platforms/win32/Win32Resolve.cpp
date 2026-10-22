@@ -179,7 +179,7 @@ namespace mdnscpp
       ipv4.emplace(pInstance->ip4Address, pInstance->wPort);
 
     if (pInstance->ip6Address)
-      ipv4.emplace(pInstance->ip6Address, pInstance->wPort);
+      ipv6.emplace(pInstance->ip6Address, pInstance->wPort);
 
     // Everything in pInstance comes from the network. Strings with invalid
     // encoding are dropped: if the hostname or instance name is invalid the
