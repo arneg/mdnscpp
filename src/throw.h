@@ -19,7 +19,9 @@
 #  define MDNSCPP_THROW(EXCEPTION_TYPE, MSG)                                   \
     do                                                                         \
     {                                                                          \
-      assert(!(MSG));                                                          \
+      /* MSG may be any expression convertible to the exception's argument,  \
+         e.g. a std::string, so it cannot be negated. */ \
+      assert(((void)(MSG), false));                                            \
     } while (0);
 #else
 #  define MDNSCPP_THROW(EXCEPTION_TYPE, MSG)                                   \

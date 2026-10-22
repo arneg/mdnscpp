@@ -1,6 +1,7 @@
 #include "debug.h"
 #include <algorithm>
 #include <mdnscpp/Browser.h>
+#include <mdnscpp/validation.h>
 
 #include "throw.h"
 
@@ -30,6 +31,18 @@ namespace mdnscpp
         domain_(domain), interfaceIndex_(interfaceIndex),
         ipProtocol_(ipProtocol)
   {
+    if (auto error =
+            validateBrowseArguments(type, protocol, domain, interfaceIndex))
+    {
+      if (error->argument == BrowseArgumentError::Argument::InterfaceIndex)
+      {
+        MDNSCPP_THROW(std::out_of_range, error->message);
+      }
+      else
+      {
+        MDNSCPP_THROW(std::invalid_argument, error->message);
+      }
+    }
   }
 
   const std::string &Browser::getType() const { return type_; }

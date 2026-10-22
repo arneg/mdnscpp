@@ -5,7 +5,11 @@
 #include <iostream>
 #include <mdnscpp/LibuvLoop.h>
 #include <mdnscpp/Platform.h>
+#include <mdnscpp/validation.h>
 #include <napi.h>
+
+#include <cmath>
+#include <string>
 
 class BrowseContext
 {
@@ -155,13 +159,45 @@ void BrowseContext::finalizer(Napi::Env env, BrowseContext *ctx)
   }
 }
 
+// Throws the error to JavaScript, with a Node.js style `code` property.
+static void throwJsError(Napi::Error error, const char *code)
+{
+  error.Value().Set("code", Napi::String::New(error.Env(), code));
+  error.ThrowAsJavaScriptException();
+}
+
+// Reads options[name] as a string. undefined and null mean "not set": that is
+// an error if `required`, otherwise `dst` is left untouched. Throws a
+// JavaScript TypeError and returns false for any other type.
+static bool getStringOption(Napi::Env env, const Napi::Object &options,
+    const char *name, bool required, std::string &dst)
+{
+  Napi::Value value = options.Get(name);
+
+  if (value.IsString())
+  {
+    dst = value.As<Napi::String>().Utf8Value();
+    return true;
+  }
+
+  if (!required && (value.IsUndefined() || value.IsNull()))
+    return true;
+
+  throwJsError(Napi::TypeError::New(env,
+                   std::string("Expected options.") + name + " as string."),
+      "ERR_INVALID_ARG_TYPE");
+  return false;
+}
+
 class MdnsBrowseAddon : public Napi::Addon<MdnsBrowseAddon>
 {
 public:
   MdnsBrowseAddon(Napi::Env env, Napi::Object exports)
-      : eventLoop_{get_uv_event_loop(env)},
-        platform_{mdnscpp::createPlatform(eventLoop_)}
+      : eventLoop_{get_uv_event_loop(env)}
   {
+    // The platform is deliberately not created here. Creating it can fail
+    // (e.g. no D-Bus/Avahi daemon), which must not break loading the module.
+    // It is created on first use, see getPlatform().
     MDNSCPP_INFO << "MdnsBrowseAddon()" << MDNSCPP_ENDL;
     // In the constructor we declare the functions the add-on makes available
     // to JavaScript.
@@ -199,14 +235,15 @@ private:
 
     if (info.Length() < 2)
     {
-      Napi::TypeError::New(env, "Wrong number of arguments.")
-          .ThrowAsJavaScriptException();
+      throwJsError(Napi::TypeError::New(env, "Wrong number of arguments."),
+          "ERR_MISSING_ARGS");
       return env.Null();
     }
 
     if (!info[0].IsObject() || !info[1].IsFunction())
     {
-      Napi::TypeError::New(env, "Bad argument.").ThrowAsJavaScriptException();
+      throwJsError(
+          Napi::TypeError::New(env, "Bad argument."), "ERR_INVALID_ARG_TYPE");
       return env.Null();
     }
 
@@ -217,44 +254,57 @@ private:
     std::string type, protocol, domain;
     mdnscpp::IPProtocol ipProtocol = mdnscpp::IPProtocol::Both;
 
-#define GET_OPTION_STR(name, dst)                                              \
-  do                                                                           \
-  {                                                                            \
-    Napi::Value tmp = options.Get(#name);                                      \
-    if (!tmp.IsString())                                                       \
-    {                                                                          \
-      Napi::TypeError::New(env, "Expected options." #name " as string.")       \
-          .ThrowAsJavaScriptException();                                       \
-      return env.Null();                                                       \
-    }                                                                          \
-    dst = tmp.As<Napi::String>().Utf8Value();                                  \
-  } while (0)
-
-    GET_OPTION_STR(type, type);
-    GET_OPTION_STR(protocol, protocol);
-
-    {
-      Napi::Value tmp = options.Get("domain");
-
-      if (tmp.IsString())
-      {
-        domain = tmp.As<Napi::String>().Utf8Value();
-      }
-    }
+    if (!getStringOption(env, options, "type", true, type) ||
+        !getStringOption(env, options, "protocol", true, protocol) ||
+        !getStringOption(env, options, "domain", false, domain))
+      return env.Null();
 
     {
       Napi::Value tmp = options.Get("interfaceIndex");
 
-      if (tmp.IsNumber())
+      // undefined and null mean "not set".
+      if (!tmp.IsUndefined() && !tmp.IsNull())
       {
-        interfaceIndex = tmp.As<Napi::Number>().Uint32Value();
+        if (!tmp.IsNumber())
+        {
+          throwJsError(Napi::TypeError::New(
+                           env, "Expected options.interfaceIndex as number."),
+              "ERR_INVALID_ARG_TYPE");
+          return env.Null();
+        }
+
+        const double value = tmp.As<Napi::Number>().DoubleValue();
+
+        // Do not let negative or fractional values wrap or truncate silently.
+        // The upper bound is checked by validateBrowseArguments().
+        if (!std::isfinite(value) || value < 0 || value != std::floor(value) ||
+            value > 9007199254740991.0)
+        {
+          throwJsError(
+              Napi::RangeError::New(env,
+                  "options.interfaceIndex must be an integer between 0 and "
+                  "2147483647."),
+              "ERR_OUT_OF_RANGE");
+          return env.Null();
+        }
+
+        interfaceIndex = static_cast<size_t>(value);
       }
     }
 
     {
       Napi::Value tmp = options.Get("ipProtocol");
-      if (tmp.IsString())
+
+      if (!tmp.IsUndefined() && !tmp.IsNull())
       {
+        if (!tmp.IsString())
+        {
+          throwJsError(Napi::TypeError::New(
+                           env, "Expected options.ipProtocol as string."),
+              "ERR_INVALID_ARG_TYPE");
+          return env.Null();
+        }
+
         std::string ipProtocolStr = tmp.As<Napi::String>().Utf8Value();
 
         if (ipProtocolStr == "ipv4")
@@ -267,11 +317,32 @@ private:
         }
         else
         {
-          Napi::TypeError::New(env, "Unexpected options.ipProtocol value.")
-              .ThrowAsJavaScriptException();
+          throwJsError(
+              Napi::TypeError::New(env, "Unexpected options.ipProtocol value."),
+              "ERR_INVALID_ARG_VALUE");
           return env.Null();
         }
       }
+    }
+
+    // Validate before anything is created, so that invalid arguments never
+    // reach the platform.
+    if (auto error = mdnscpp::validateBrowseArguments(
+            type, protocol, domain, interfaceIndex))
+    {
+      const std::string message = "Invalid options: " + error->message;
+
+      if (error->argument ==
+          mdnscpp::BrowseArgumentError::Argument::InterfaceIndex)
+      {
+        throwJsError(Napi::RangeError::New(env, message), "ERR_OUT_OF_RANGE");
+      }
+      else
+      {
+        throwJsError(
+            Napi::TypeError::New(env, message), "ERR_INVALID_ARG_VALUE");
+      }
+      return env.Null();
     }
 
     auto platform = getPlatform();

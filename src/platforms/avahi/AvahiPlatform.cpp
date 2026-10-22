@@ -2,6 +2,10 @@
 #include "AvahiBrowser.h"
 
 #include <algorithm>
+#include <string>
+
+#include <avahi-common/error.h>
+#include <mdnscpp/Error.h>
 
 #include "../../debug.h"
 #include "../../throw.h"
@@ -130,13 +134,20 @@ namespace mdnscpp
 
   void AvahiPlatform::startClient()
   {
-    int err;
+    int err = AVAHI_OK;
 
     avahiClient_ = avahi_client_new(
         &avahiPoll_, AVAHI_CLIENT_NO_FAIL, avahiClientCallback, this, &err);
 
     if (!avahiClient_)
-      MDNSCPP_THROW(std::runtime_error, "avahi_client_new failed.");
+    {
+      // AVAHI_CLIENT_NO_FAIL only covers a missing Avahi daemon. If the
+      // system D-Bus cannot be reached at all (e.g. in a container) the
+      // client cannot be created.
+      MDNSCPP_THROW(PlatformError,
+          std::string("Failed to connect to the Avahi daemon: ") +
+              avahi_strerror(err));
+    }
   }
 
   void AvahiPlatform::stopClient()

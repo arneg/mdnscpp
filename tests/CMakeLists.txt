@@ -23,10 +23,15 @@ add_executable(mdnscpp-tests
   TestHarness.h
   sockAddrToStringTest.cpp
   "${MDNSCPP_SRC}/sockAddrToString.cpp"
+  validationTest.cpp
+  "${MDNSCPP_SRC}/validation.cpp"
 )
 
 target_compile_features(mdnscpp-tests PRIVATE cxx_std_17)
-target_include_directories(mdnscpp-tests PRIVATE "${MDNSCPP_SRC}")
+target_include_directories(mdnscpp-tests PRIVATE
+  "${MDNSCPP_SRC}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+)
 
 if(WIN32)
   target_sources(mdnscpp-tests PRIVATE

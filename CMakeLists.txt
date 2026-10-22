@@ -17,6 +17,9 @@ target_sources(libmdnscpp PRIVATE
   include/mdnscpp/utils.h
   include/mdnscpp/DefaultLoop.h
   include/mdnscpp/IPAddress.h
+  include/mdnscpp/Error.h
+  include/mdnscpp/validation.h
+  src/validation.cpp
   src/BrowseResult.cpp
   src/TxtRecord.cpp
   src/Browser.cpp

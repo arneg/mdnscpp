@@ -15,6 +15,13 @@ namespace mdnscpp
     Platform(EventLoop &loop);
     virtual ~Platform() = default;
 
+    /**
+     * Starts browsing for services.
+     *
+     * See validateBrowseArguments() (validation.h) for the accepted values.
+     * Invalid arguments throw std::out_of_range (interfaceIndex) or
+     * std::invalid_argument (all others) when exceptions are enabled.
+     */
     virtual std::shared_ptr<Browser> createBrowser(const std::string &type,
         const std::string &protocol,
         Browser::ResultsChangedCallback onResultsChanged,
