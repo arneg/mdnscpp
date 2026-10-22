@@ -21,12 +21,12 @@ namespace mdnscpp
     auto cbs = getCallbacksToRun();
     for (auto cb : cbs)
     {
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
       try
       {
 #endif
         cb();
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
       }
       catch (std::exception &err)
       {

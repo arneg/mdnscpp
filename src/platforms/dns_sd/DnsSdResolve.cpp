@@ -31,7 +31,7 @@ namespace mdnscpp
 
       if (error != kDNSServiceErr_NoError)
       {
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
         throw std::logic_error("Should not happen.");
 #else
         continue;

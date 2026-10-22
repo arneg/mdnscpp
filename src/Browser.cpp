@@ -77,12 +77,12 @@ namespace mdnscpp
     if (!onResultsChanged_)
       return;
 
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
     try
     {
 #endif
       onResultsChanged_(getSharedFromThis());
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
     }
     catch (const std::exception &e)
     {

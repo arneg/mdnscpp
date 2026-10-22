@@ -1,6 +1,6 @@
 #include "sockAddrToString.h"
 
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
 #  include <stdexcept>
 #endif
 
@@ -40,7 +40,7 @@ namespace mdnscpp
     }
     else
     {
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
       throw std::invalid_argument("sockAddrToString(): Not and INET address.");
 #else
       return "";
@@ -53,7 +53,7 @@ namespace mdnscpp
 
     if (!s)
     {
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
       throw std::invalid_argument(
           "sockAddrToString(): Failed to print ip address.");
 #else

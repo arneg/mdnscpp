@@ -1,7 +1,7 @@
 #include "DnsSdRef.h"
 #include "DnsSdPlatform.h"
 
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
 #  include <stdexcept>
 #endif
 
@@ -43,7 +43,7 @@ namespace mdnscpp
     {
       DNSServiceProcessResult(sdRef_);
     }
-#ifdef __cpp_exception
+#ifdef __cpp_exceptions
     else
     {
 
