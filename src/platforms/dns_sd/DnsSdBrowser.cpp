@@ -39,7 +39,7 @@ namespace mdnscpp
     result += ", ";
     result += domain_;
     result += ", ";
-    result += interfaceIndex_;
+    result += std::to_string(interfaceIndex_);
     result += ")";
     return result;
   }
