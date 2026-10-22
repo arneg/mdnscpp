@@ -1,9 +1,9 @@
 #include "debug.h"
+#include "guardCallback.h"
+#include "throw.h"
 #include <algorithm>
 #include <mdnscpp/Browser.h>
 #include <mdnscpp/validation.h>
-
-#include "throw.h"
 
 namespace mdnscpp
 {
@@ -90,19 +90,8 @@ namespace mdnscpp
     if (!onResultsChanged_)
       return;
 
-#ifdef __cpp_exceptions
-    try
-    {
-#endif
-      onResultsChanged_(getSharedFromThis());
-#ifdef __cpp_exceptions
-    }
-    catch (const std::exception &e)
-    {
-      MDNSCPP_ERROR << "onResultsChanged() threw an exception: " << e.what()
-                    << MDNSCPP_ENDL;
-    }
-#endif
+    guardCallback("Browser::notifyResultsChanged",
+        [&] { onResultsChanged_(getSharedFromThis()); });
   }
 
   void Browser::triggerNotifyResultsChanged()

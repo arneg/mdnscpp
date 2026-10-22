@@ -5,6 +5,7 @@
 #include "../../throw.h"
 
 #include "../../debug.h"
+#include "../../guardCallback.h"
 #include <cwchar>
 #include <stdexcept>
 #include <string_view>
@@ -86,16 +87,20 @@ namespace mdnscpp
   void Win32Browser::DnsQueryCompletionRoutine(
       void *pQueryContext, DNS_QUERY_RESULT *queryResults)
   {
-    MDNSCPP_INFO << "DnsQueryCompletionRoutine " << queryResults->QueryStatus
-                 << MDNSCPP_ENDL;
     DNS_RECORD *records = queryResults->pQueryRecords;
-
+    Win32BrowseResult result;
     Win32Browser *browser = reinterpret_cast<Win32Browser *>(pQueryContext);
-    Win32BrowseResult result = dnsRecordToBrowseResult(records);
+
+    guardCallback("Win32Browser::DnsQueryCompletionRoutine", [&] {
+      MDNSCPP_INFO << "DnsQueryCompletionRoutine " << queryResults->QueryStatus
+                   << MDNSCPP_ENDL;
+      result = dnsRecordToBrowseResult(records);
+    });
 
     DnsRecordListFree(records, DnsFreeRecordList);
 
-    browser->onBrowseResult(std::move(result));
+    guardCallback("Win32Browser::onBrowseResult",
+        [&] { browser->onBrowseResult(std::move(result)); });
   }
 
   static const std::string defaultDomain = "local";

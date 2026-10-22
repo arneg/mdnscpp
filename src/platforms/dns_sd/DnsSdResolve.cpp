@@ -4,6 +4,7 @@
 #include "DnsSdPlatform.h"
 
 #include "../../debug.h"
+#include "../../guardCallback.h"
 
 #include <cstring>
 #include <netdb.h>
@@ -168,8 +169,10 @@ namespace mdnscpp
       const char *hosttarget, uint16_t port, uint16_t txtLen,
       const unsigned char *txtRecord, void *context)
   {
-    reinterpret_cast<DnsSdResolve *>(context)->onResult(flags,
-        interfaceIndexIndex, errorCode, fullname, hosttarget, port, txtLen,
-        txtRecord);
+    guardCallback("DnsSdResolve::resolveResultCallback", [&] {
+      reinterpret_cast<DnsSdResolve *>(context)->onResult(flags,
+          interfaceIndexIndex, errorCode, fullname, hosttarget, port, txtLen,
+          txtRecord);
+    });
   }
 } // namespace mdnscpp

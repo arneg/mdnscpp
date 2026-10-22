@@ -33,6 +33,7 @@ target_sources(libmdnscpp PRIVATE
   src/sockAddrToIPProtocol.cpp
   src/utils.cpp
   src/throw.h
+  src/guardCallback.h
 )
 
 target_compile_definitions(libmdnscpp PRIVATE MDNSCPP_ENABLE_VERBOSE_DEBUG)

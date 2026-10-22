@@ -28,6 +28,7 @@ add_executable(mdnscpp-tests
   browseResultTest.cpp
   "${MDNSCPP_SRC}/BrowseResult.cpp"
   "${MDNSCPP_SRC}/TxtRecord.cpp"
+  guardCallbackTest.cpp
 )
 
 target_compile_features(mdnscpp-tests PRIVATE cxx_std_17)

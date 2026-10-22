@@ -1,6 +1,7 @@
 #include "DnsSdBrowser.h"
 
 #include "../../debug.h"
+#include "../../guardCallback.h"
 #include "../../throw.h"
 #include "DnsSdPlatform.h"
 
@@ -125,8 +126,10 @@ namespace mdnscpp
       DNSServiceErrorType errorCode, const char *serviceName,
       const char *regtype, const char *replyDomain, void *context)
   {
-    reinterpret_cast<DnsSdBrowser *>(context)->browseResult(
-        interfaceIndex, errorCode, flags, serviceName, regtype, replyDomain);
+    guardCallback("DnsSdBrowser::browseResultCallback", [&] {
+      reinterpret_cast<DnsSdBrowser *>(context)->browseResult(
+          interfaceIndex, errorCode, flags, serviceName, regtype, replyDomain);
+    });
   }
 
   std::shared_ptr<Browser> DnsSdBrowser::getSharedFromThis()

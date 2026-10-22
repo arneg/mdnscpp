@@ -3,6 +3,7 @@
 #include "AvahiUtils.h"
 
 #include "../../debug.h"
+#include "../../guardCallback.h"
 
 #include <avahi-common/error.h>
 
@@ -158,7 +159,9 @@ namespace mdnscpp
       AvahiBrowserEvent event, const char *name, const char *type,
       const char *domain, AvahiLookupResultFlags flags, void *userdata)
   {
-    reinterpret_cast<AvahiBrowser *>(userdata)->resultCallback(
-        interfaceIndex, protocol, event, name, type, domain, flags);
+    guardCallback("AvahiBrowser::avahiServiceBrowserCallback", [&] {
+      reinterpret_cast<AvahiBrowser *>(userdata)->resultCallback(
+          interfaceIndex, protocol, event, name, type, domain, flags);
+    });
   }
 } // namespace mdnscpp

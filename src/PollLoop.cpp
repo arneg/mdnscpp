@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "debug.h"
+#include "guardCallback.h"
 #include "timeval.h"
 
 namespace mdnscpp
@@ -54,7 +55,8 @@ namespace mdnscpp
             continue;
         }
 
-        watch->getCallback()(watch->getReturnedEvents());
+        guardCallback("PollLoop::watch",
+            [&] { watch->getCallback()(watch->getReturnedEvents()); });
       }
 
       if (processAsync_)
@@ -63,7 +65,7 @@ namespace mdnscpp
 
         for (auto &async : pollAsyncs_)
         {
-          async->process();
+          guardCallback("PollLoop::async", [&] { async->process(); });
         }
 
         pollAsyncs_.erase(
@@ -190,7 +192,7 @@ namespace mdnscpp
       auto *timer = it->second;
 
       timeouts_.erase(it);
-      timer->notify();
+      guardCallback("PollLoop::timeout", [&] { timer->notify(); });
       count++;
     }
 

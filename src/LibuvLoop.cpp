@@ -3,6 +3,7 @@
 #include "throw.h"
 
 #include "debug.h"
+#include "guardCallback.h"
 #include <cassert>
 #include <limits>
 
@@ -92,8 +93,10 @@ namespace mdnscpp
     {
       uv_poll_start(
           &uv_poll_, events, [](uv_poll_t *handle, int status, int events) {
-            reinterpret_cast<LibuvPoll *>(handle->data)
-                ->onEvents(status, events);
+            guardCallback("LibuvPoll::onEvents", [&] {
+              reinterpret_cast<LibuvPoll *>(handle->data)
+                  ->onEvents(status, events);
+            });
           });
     }
     else
@@ -142,8 +145,10 @@ namespace mdnscpp
     uv_timer_start(
         &uv_timer_,
         [](uv_timer_t *handle) {
-          LibuvTimer *self = reinterpret_cast<LibuvTimer *>(handle->data);
-          self->timerCallback();
+          guardCallback("LibuvTimer::timerCallback", [&] {
+            LibuvTimer *self = reinterpret_cast<LibuvTimer *>(handle->data);
+            self->timerCallback();
+          });
         },
         timeout, 0);
   }
@@ -276,16 +281,18 @@ namespace mdnscpp
 
   void LibuvLoop::LibuvAsync::asyncCallback(uv_async_t *handle)
   {
-    LibuvLoop::LibuvAsync *async = reinterpret_cast<LibuvLoop::LibuvAsync *>(
-        uv_handle_get_data(reinterpret_cast<uv_handle_t *>(handle)));
-    if (async->shouldDeallocate())
-    {
-      uv_close(reinterpret_cast<uv_handle_t *>(handle), closeCallback);
-    }
-    else
-    {
-      async->process();
-    }
+    guardCallback("LibuvAsync::asyncCallback", [&] {
+      LibuvLoop::LibuvAsync *async = reinterpret_cast<LibuvLoop::LibuvAsync *>(
+          uv_handle_get_data(reinterpret_cast<uv_handle_t *>(handle)));
+      if (async->shouldDeallocate())
+      {
+        uv_close(reinterpret_cast<uv_handle_t *>(handle), closeCallback);
+      }
+      else
+      {
+        async->process();
+      }
+    });
   }
 
   void LibuvLoop::LibuvAsync::closeCallback(uv_handle_t *handle)

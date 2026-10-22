@@ -9,6 +9,7 @@
 #include "toWideString.h"
 
 #include "../../debug.h"
+#include "../../guardCallback.h"
 
 static constexpr uint64_t pendingRetryInterval = 5 * 1000;
 
@@ -275,7 +276,8 @@ namespace mdnscpp
     if (pInstance)
     {
       Win32Resolve *self = reinterpret_cast<Win32Resolve *>(pQueryContext);
-      self->onResolveResult(pInstance);
+      guardCallback("Win32Resolve::DnsServiceResolveComplete",
+          [&] { self->onResolveResult(pInstance); });
       DnsServiceFreeInstance(pInstance);
     }
   }

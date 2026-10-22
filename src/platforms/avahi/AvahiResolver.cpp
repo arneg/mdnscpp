@@ -4,6 +4,7 @@
 #include "AvahiUtils.h"
 
 #include "../../debug.h"
+#include "../../guardCallback.h"
 
 #include <avahi-common/error.h>
 #include <avahi-common/malloc.h>
@@ -175,11 +176,13 @@ namespace mdnscpp
       const char *host_name, const AvahiAddress *a, uint16_t port,
       AvahiStringList *txt, AvahiLookupResultFlags flags, void *userdata)
   {
-    auto self =
-        reinterpret_cast<AvahiResolver *>(userdata)->weak_from_this().lock();
-    if (!self)
-      return;
-    self->resultCallback(interface, protocol, event, name, type, domain,
-        host_name, a, port, txt, flags);
+    guardCallback("AvahiResolver::avahiServiceResolverCallback", [&] {
+      auto self =
+          reinterpret_cast<AvahiResolver *>(userdata)->weak_from_this().lock();
+      if (!self)
+        return;
+      self->resultCallback(interface, protocol, event, name, type, domain,
+          host_name, a, port, txt, flags);
+    });
   }
 } // namespace mdnscpp

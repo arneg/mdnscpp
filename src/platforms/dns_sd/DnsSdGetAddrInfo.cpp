@@ -9,6 +9,7 @@
 #include <mdnscpp/BrowseResult.h>
 
 #include "../../debug.h"
+#include "../../guardCallback.h"
 
 #include <netdb.h>
 
@@ -16,8 +17,6 @@
 
 namespace mdnscpp
 {
-  static const char *nz(const char *s) { return s ? s : "(null)"; }
-
   static DNSServiceProtocol getDnsServiceProtocol(IPProtocol proto)
   {
     switch (proto)
@@ -166,7 +165,9 @@ namespace mdnscpp
       DNSServiceErrorType errorCode, const char *hostname,
       const struct sockaddr *address, uint32_t ttl, void *context)
   {
-    reinterpret_cast<DnsSdGetAddrInfo *>(context)->onResult(
-        flags, interfaceIndexIndex, errorCode, hostname, address, ttl);
+    guardCallback("DnsSdGetAddrInfo::getAddrInfoResultCallback", [&] {
+      reinterpret_cast<DnsSdGetAddrInfo *>(context)->onResult(
+          flags, interfaceIndexIndex, errorCode, hostname, address, ttl);
+    });
   }
 } // namespace mdnscpp

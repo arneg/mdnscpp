@@ -1,6 +1,6 @@
 #include <mdnscpp/CallQueue.h>
 
-#include "debug.h"
+#include "guardCallback.h"
 #include <utility>
 
 namespace mdnscpp
@@ -20,20 +20,7 @@ namespace mdnscpp
   {
     auto cbs = getCallbacksToRun();
     for (auto cb : cbs)
-    {
-#ifdef __cpp_exceptions
-      try
-      {
-#endif
-        cb();
-#ifdef __cpp_exceptions
-      }
-      catch (std::exception &err)
-      {
-        // TODO: report error
-      }
-#endif
-    }
+      guardCallback("CallQueue::executeCallbacks", [&] { cb(); });
   }
 
   void CallQueue::schedule(Callback callback)

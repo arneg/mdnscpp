@@ -8,6 +8,7 @@
 #include <mdnscpp/Error.h>
 
 #include "../../debug.h"
+#include "../../guardCallback.h"
 #include "../../throw.h"
 #include "../../timeval.h"
 
@@ -221,38 +222,46 @@ namespace mdnscpp
   void AvahiPlatform::avahiClientCallback(
       AvahiClient *s, AvahiClientState state, void *userdata)
   {
-    MDNSCPP_INFO << "avahiClientCallback(" << state << ")" << MDNSCPP_ENDL;
-    AvahiPlatform *platform = reinterpret_cast<AvahiPlatform *>(userdata);
-    switch (state)
-    {
-    case AVAHI_CLIENT_S_RUNNING:
-      platform->unpause();
-      break;
-    default:
-      platform->pause();
-      break;
-    }
+    guardCallback("AvahiPlatform::avahiClientCallback", [&] {
+      MDNSCPP_INFO << "avahiClientCallback(" << state << ")" << MDNSCPP_ENDL;
+      AvahiPlatform *platform = reinterpret_cast<AvahiPlatform *>(userdata);
+      switch (state)
+      {
+      case AVAHI_CLIENT_S_RUNNING:
+        platform->unpause();
+        break;
+      default:
+        platform->pause();
+        break;
+      }
+    });
   }
 
   AvahiWatch *AvahiPlatform::avahiPollWatchNew(const AvahiPoll *api, int fd,
       AvahiWatchEvent event, AvahiWatchCallback callback, void *userdata)
   {
-    AvahiPlatform *self = reinterpret_cast<AvahiPlatform *>(api->userdata);
-    AvahiWatch *w = new AvahiWatch();
+    return guardCallback(
+        "AvahiPlatform::avahiPollWatchNew",
+        [&] {
+          AvahiPlatform *self =
+              reinterpret_cast<AvahiPlatform *>(api->userdata);
+          AvahiWatch *w = new AvahiWatch();
 
-    MDNSCPP_INFO << "watch_new(" << api << ", " << fd << ", " << ", " << event
-                 << ", " << userdata << ")" << MDNSCPP_ENDL;
+          MDNSCPP_INFO << "watch_new(" << api << ", " << fd << ", " << ", "
+                       << event << ", " << userdata << ")" << MDNSCPP_ENDL;
 
-    w->watch = self->loop_.createWatch(
-        fd, fromAvahiEvent(event), [=](EventLoop::EventType events) {
-          auto event = toAvahiEvent(events);
-          MDNSCPP_INFO << "watch triggered " << api << ", " << fd << ", "
-                       << ", " << event << ", " << userdata << ")"
-                       << MDNSCPP_ENDL;
-          callback(w, fd, event, userdata);
-        });
+          w->watch = self->loop_.createWatch(
+              fd, fromAvahiEvent(event), [=](EventLoop::EventType events) {
+                auto event = toAvahiEvent(events);
+                MDNSCPP_INFO << "watch triggered " << api << ", " << fd << ", "
+                             << ", " << event << ", " << userdata << ")"
+                             << MDNSCPP_ENDL;
+                callback(w, fd, event, userdata);
+              });
 
-    return w;
+          return w;
+        },
+        static_cast<AvahiWatch *>(nullptr));
   }
 
   void AvahiPlatform::avahiPollWatchUpdate(AvahiWatch *w, AvahiWatchEvent event)
@@ -277,16 +286,22 @@ namespace mdnscpp
   AvahiTimeout *AvahiPlatform::avahiPollTimeoutNew(const AvahiPoll *api,
       const struct timeval *tv, AvahiTimeoutCallback callback, void *userdata)
   {
-    AvahiPlatform *self = reinterpret_cast<AvahiPlatform *>(api->userdata);
-    AvahiTimeout *t = new AvahiTimeout();
+    return guardCallback(
+        "AvahiPlatform::avahiPollTimeoutNew",
+        [&] {
+          AvahiPlatform *self =
+              reinterpret_cast<AvahiPlatform *>(api->userdata);
+          AvahiTimeout *t = new AvahiTimeout();
 
-    MDNSCPP_INFO << "timeout_new(" << (tv ? timevalToMs(*tv) : size_t{0})
-                 << ") = " << t << MDNSCPP_ENDL;
+          MDNSCPP_INFO << "timeout_new(" << (tv ? timevalToMs(*tv) : size_t{0})
+                       << ") = " << t << MDNSCPP_ENDL;
 
-    t->timeout = self->loop_.createTimeout(stateFromTimeval(tv),
-        [=](EventLoop::Timeout &) { callback(t, userdata); });
+          t->timeout = self->loop_.createTimeout(stateFromTimeval(tv),
+              [=](EventLoop::Timeout &) { callback(t, userdata); });
 
-    return t;
+          return t;
+        },
+        static_cast<AvahiTimeout *>(nullptr));
   }
 
   void AvahiPlatform::avahiPollTimeoutUpdate(
