@@ -144,6 +144,7 @@ namespace mdnscpp
     if (avahiClient_)
     {
       avahi_client_free(avahiClient_);
+      avahiClient_ = nullptr;
     }
   }
 

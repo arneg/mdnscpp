@@ -35,7 +35,7 @@ namespace mdnscpp
     // and unpause()
     std::vector<AvahiBrowser *> browsers_;
     struct AvahiPoll avahiPoll_;
-    AvahiClient *avahiClient_;
+    AvahiClient *avahiClient_ = nullptr;
     bool paused_ = true;
 
     void startClient();
