@@ -31,7 +31,7 @@
 
 #define MDNSCPP_ASSERT(X) assert(X)
 
-#ifdef NDEBUG
+#ifndef NDEBUG
 #  define MDNSCPP_DEBUG_ASSERT(X) assert(X)
 #else
 #  define MDNSCPP_DEBUG_ASSERT(X)
