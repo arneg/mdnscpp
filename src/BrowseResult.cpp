@@ -113,6 +113,6 @@ namespace mdnscpp
         address_(std::move(address)), interfaceIndex_(interfaceIndex),
         ipProtocol_(ipProtocol), port_(port)
   {
-    fullname_ = name_ + "." + type_ + "." + protocol_ + "." + domain;
+    fullname_ = name_ + "." + type_ + "." + protocol_ + "." + domain_;
   }
 }; // namespace mdnscpp
