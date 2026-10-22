@@ -1,0 +1,26 @@
+{
+  "name": "mdns-browse-build",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Build environment for the mdns-browse native addon. Never published; see ../mdns-browse for the package.",
+  "type": "module",
+  "scripts": {
+    "build": "node-gyp rebuild",
+    "clean": "node-gyp clean",
+    "prebuildify": "prebuildify --napi --strip --name mdns-browse",
+    "link-local": "node scripts/link-local.js",
+    "test": "node --test --test-concurrency 1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "get-uv-event-loop-napi-h": "^1.0.6",
+    "mdns-browse": "*",
+    "node-addon-api": "^8.9.2",
+    "node-gyp": "^12.4.0",
+    "prebuildify": "^6.0.1",
+    "simple-mdns-announce": "^1.1.1"
+  }
+}

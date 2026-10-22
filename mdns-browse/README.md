@@ -10,7 +10,9 @@ This module exposes a simple and consistent JavaScript interface for browsing lo
 npm install mdns-browse
 ```
 
-Note: Building this module requires a C++17-capable compiler. On linux you may need to have Bonjour or Avahi development headers installed.
+The package ships prebuilt binaries, so no compiler is needed. Requires Node.js 22 or newer.
+
+On Linux the Avahi client library must be installed at runtime (e.g. `apt install libavahi-client3`) and `avahi-daemon` must be running.
 
 ## 🚀 Usage
 

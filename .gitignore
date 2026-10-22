@@ -2,6 +2,8 @@
 /out
 /.vscode
 /.vs
-/mdns-browse/node_modules
-/mdns-browse/src/mdnscpp
-/mdns-browse/build
+/node_modules
+/mdns-browse/prebuilds
+/mdns-browse-build/build
+/mdns-browse-build/prebuilds
+/mdns-browse-build/dist

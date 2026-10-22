@@ -1,0 +1,9 @@
+{
+  "name": "mdnscpp-node-workspace",
+  "private": true,
+  "description": "npm workspace for the node bindings of mdnscpp. Not published.",
+  "workspaces": [
+    "mdns-browse",
+    "mdns-browse-build"
+  ]
+}

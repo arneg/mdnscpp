@@ -1,6 +1,6 @@
 #include <uv.h>
 
-#include "mdnscpp/src/debug.h"
+#include "../../src/debug.h"
 #include <get-uv-event-loop-napi.h>
 #include <iostream>
 #include <mdnscpp/LibuvLoop.h>

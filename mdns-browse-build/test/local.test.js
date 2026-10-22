@@ -2,9 +2,12 @@ import { afterEach, describe, test } from "node:test";
 import { startBrowse } from "mdns-browse";
 import { announceService } from "simple-mdns-announce";
 import {
+  browseCriteriaFromService,
+  compareServiceAndResult,
   findAndCompareService,
   combineCleanup,
   randomizeServiceName,
+  waitFor,
 } from "./helpers.js";
 
 const type = "_ttest._tcp";
