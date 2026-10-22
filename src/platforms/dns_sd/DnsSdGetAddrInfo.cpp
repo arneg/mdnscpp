@@ -78,6 +78,14 @@ namespace mdnscpp
     MDNSCPP_INFO << describe() << ".onResult(" << ipAddress << ")"
                  << MDNSCPP_ENDL;
 
+    // Without kDNSServiceFlagsAdd the address is no longer valid. Dropping
+    // its removal context removes the corresponding result.
+    if (!(flags & kDNSServiceFlagsAdd))
+    {
+      resultRemovalContext_.erase(ipAddress);
+      return;
+    }
+
     auto resolve = getResolve();
     auto browser = resolve->getBrowser();
 
