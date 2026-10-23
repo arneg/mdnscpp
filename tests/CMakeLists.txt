@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.16)
 
 # C++-only tests for self-contained pieces of mdnscpp. The tests compile the
 # sources under test directly instead of linking libmdnscpp, so that they do
