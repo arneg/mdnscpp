@@ -53,6 +53,13 @@ cmake -Bbuild
 cmake --build build -j4
 ```
 
+The example is a separate CMake project (on Windows it fetches libuv if none is installed):
+
+```bash
+cmake -S example -B build/example
+cmake --build build/example -j4
+```
+
 ## 🚀 Example Usage
 
 ```cpp
