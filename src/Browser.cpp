@@ -7,26 +7,17 @@
 
 namespace mdnscpp
 {
-  class ResultRemovalContext
+  Browser::ResultRemovalContext::ResultRemovalContext(
+      std::shared_ptr<Browser> browser, std::shared_ptr<BrowseResult> result)
+      : browser_(std::move(browser)), result_(std::move(result))
   {
-    // Weak, so that a result does not keep its browser alive. The browser owns
-    // the resolves that own these contexts.
-    std::weak_ptr<Browser> browser_;
-    std::shared_ptr<BrowseResult> result_;
+  }
 
-  public:
-    ResultRemovalContext(
-        std::shared_ptr<Browser> browser, std::shared_ptr<BrowseResult> result)
-        : browser_(browser), result_(result)
-    {
-    }
-
-    ~ResultRemovalContext()
-    {
-      if (auto browser = browser_.lock())
-        browser->removeResult(result_);
-    }
-  };
+  Browser::ResultRemovalContext::~ResultRemovalContext()
+  {
+    if (auto browser = browser_.lock())
+      browser->removeResult(result_);
+  }
 
   Browser::Browser(const std::string &type, const std::string &protocol,
       ResultsChangedCallback onResultsChanged, const std::string &domain,
@@ -69,7 +60,8 @@ namespace mdnscpp
 
   int Browser::getError() const { return error_; }
 
-  std::shared_ptr<void> Browser::addResult(std::shared_ptr<BrowseResult> result)
+  std::shared_ptr<Browser::ResultRemovalContext> Browser::addResult(
+      std::shared_ptr<BrowseResult> result)
   {
     insertResult(result);
     return std::make_shared<ResultRemovalContext>(

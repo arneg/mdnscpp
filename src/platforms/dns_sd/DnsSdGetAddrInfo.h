@@ -7,6 +7,7 @@
 #include <dns_sd.h>
 
 #include "DnsSdRef.h"
+#include <mdnscpp/Browser.h>
 #include <mdnscpp/Types.h>
 
 namespace mdnscpp
@@ -32,19 +33,14 @@ namespace mdnscpp
     void refresh(uint16_t port);
 
   private:
-    struct Entry
-    {
-      std::string hostname;
-      IPProtocol ipProtocol;
-      std::shared_ptr<void> removal;
-    };
-
     const std::weak_ptr<DnsSdResolve> resolve_;
     const size_t interfaceIndex_;
     const std::string hostname_;
     uint16_t port_;
 
-    std::unordered_map<std::string, Entry> resultRemovalContext_;
+    std::unordered_map<std::string,
+        std::shared_ptr<Browser::ResultRemovalContext>>
+        resultRemovalContext_;
 
     void addResult(const std::string &hostname, const std::string &ipAddress,
         IPProtocol ipProtocol);
