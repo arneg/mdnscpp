@@ -141,8 +141,8 @@ namespace mdnscpp
 
     if (status != DNS_REQUEST_PENDING)
     {
-      MDNSCPP_INFO << describe() << " DnsServiceResolve failed."
-                   << MDNSCPP_ENDL;
+      MDNSCPP_ERROR << describe() << " DnsServiceResolve failed with " << status
+                    << MDNSCPP_ENDL;
       state_ = State::FAILED;
     }
   }
@@ -270,16 +270,34 @@ namespace mdnscpp
     });
   }
 
+  void Win32Resolve::onResolveFailed(DWORD status)
+  {
+    queue_.schedule([this, status]() {
+      if (state_ != State::PENDING)
+        return;
+      MDNSCPP_ERROR << describe() << " DnsServiceResolve completed with status "
+                    << status << MDNSCPP_ENDL;
+      state_ = State::FAILED;
+    });
+  }
+
   void Win32Resolve::DnsServiceResolveComplete(
       DWORD Status, PVOID pQueryContext, PDNS_SERVICE_INSTANCE pInstance)
   {
+    Win32Resolve *self = reinterpret_cast<Win32Resolve *>(pQueryContext);
+    guardCallback("Win32Resolve::DnsServiceResolveComplete", [&] {
+      if (Status != ERROR_SUCCESS || !pInstance)
+      {
+        // Cancel completions race with a replacement resolve on the
+        // event-loop thread; do not mark that new attempt failed.
+        if (Status != ERROR_CANCELLED && Status != ERROR_OPERATION_ABORTED)
+          self->onResolveFailed(Status);
+        return;
+      }
+      self->onResolveResult(pInstance);
+    });
     if (pInstance)
-    {
-      Win32Resolve *self = reinterpret_cast<Win32Resolve *>(pQueryContext);
-      guardCallback("Win32Resolve::DnsServiceResolveComplete",
-          [&] { self->onResolveResult(pInstance); });
       DnsServiceFreeInstance(pInstance);
-    }
   }
 
   void Win32Resolve::cancel()

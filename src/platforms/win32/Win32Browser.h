@@ -62,6 +62,8 @@ namespace mdnscpp
     static void DnsQueryCompletionRoutine(
         void *pQueryContext, DNS_QUERY_RESULT *queryResults);
 
+    DNS_STATUS startBrowse();
+    void scheduleRefreshTimer();
     void onBrowseResult(Win32BrowseResult result);
     std::string stripQueryName(std::string fullname) const;
 

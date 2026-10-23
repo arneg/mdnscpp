@@ -84,23 +84,41 @@ namespace mdnscpp
     return result;
   }
 
+  static bool isCancelledStatus(DNS_STATUS status)
+  {
+    return status == ERROR_CANCELLED || status == ERROR_OPERATION_ABORTED;
+  }
+
   void Win32Browser::DnsQueryCompletionRoutine(
       void *pQueryContext, DNS_QUERY_RESULT *queryResults)
   {
     DNS_RECORD *records = queryResults->pQueryRecords;
+    const DNS_STATUS status = queryResults->QueryStatus;
     Win32BrowseResult result;
     Win32Browser *browser = reinterpret_cast<Win32Browser *>(pQueryContext);
 
     guardCallback("Win32Browser::DnsQueryCompletionRoutine", [&] {
-      MDNSCPP_INFO << "DnsQueryCompletionRoutine " << queryResults->QueryStatus
-                   << MDNSCPP_ENDL;
+      MDNSCPP_INFO << "DnsQueryCompletionRoutine " << status << MDNSCPP_ENDL;
+      if (status != ERROR_SUCCESS)
+      {
+        if (!isCancelledStatus(status))
+        {
+          MDNSCPP_ERROR << browser->describe()
+                        << " browse query failed with status " << status
+                        << MDNSCPP_ENDL;
+        }
+        return;
+      }
       result = dnsRecordToBrowseResult(records);
     });
 
     DnsRecordListFree(records, DnsFreeRecordList);
 
-    guardCallback("Win32Browser::onBrowseResult",
-        [&] { browser->onBrowseResult(std::move(result)); });
+    if (status == ERROR_SUCCESS)
+    {
+      guardCallback("Win32Browser::onBrowseResult",
+          [&] { browser->onBrowseResult(std::move(result)); });
+    }
   }
 
   static const std::string defaultDomain = "local";
@@ -136,11 +154,47 @@ namespace mdnscpp
   {
     MDNSCPP_INFO << describe() << MDNSCPP_ENDL;
 
-    refresh();
+    startBrowse();
+    scheduleRefreshTimer();
+  }
+
+  DNS_STATUS Win32Browser::startBrowse()
+  {
+    DNS_SERVICE_BROWSE_REQUEST request;
+
+    request.Version = 2; /*DNS_QUERY_REQUEST_VERSION2;*/
+    request.InterfaceIndex = static_cast<unsigned long>(interfaceIndex_);
+    request.QueryName = wqueryName_.c_str();
+    request.pQueryContext = this;
+    request.pBrowseCallbackV2 = DnsQueryCompletionRoutine;
+
+    auto status = DnsServiceBrowse(&request, &cancel_);
+
+    if (status != DNS_REQUEST_PENDING)
+    {
+      state_ = State::FAILED;
+      MDNSCPP_ERROR << describe() << ": DnsServiceBrowse failed with " << status
+                    << MDNSCPP_ENDL;
+      return status;
+    }
+
+    state_ = State::PENDING;
+    MDNSCPP_INFO << describe() << ": browse started." << MDNSCPP_ENDL;
+    return status;
+  }
+
+  void Win32Browser::scheduleRefreshTimer()
+  {
+    struct timeval time{};
+    time.tv_sec = 10;
+    refreshTimer_->update(EventLoop::TimeoutRelative{time});
   }
 
   void Win32Browser::refresh()
   {
+    if (hasError())
+      return;
+
     MDNSCPP_INFO << describe() << ".refresh()" << MDNSCPP_ENDL;
     cancel();
 
@@ -160,30 +214,8 @@ namespace mdnscpp
       }
     }
 
-    DNS_SERVICE_BROWSE_REQUEST request;
-
-    request.Version = 2; /*DNS_QUERY_REQUEST_VERSION2;*/
-    request.InterfaceIndex = static_cast<unsigned long>(interfaceIndex_);
-    request.QueryName = wqueryName_.c_str();
-    request.pQueryContext = this;
-    request.pBrowseCallbackV2 = DnsQueryCompletionRoutine;
-
-    auto status = DnsServiceBrowse(&request, &cancel_);
-
-    if (status != DNS_REQUEST_PENDING)
-    {
-      state_ = State::FAILED;
-      MDNSCPP_ERROR << describe() << ": failed." << MDNSCPP_ENDL;
-    }
-    else
-    {
-      state_ = State::PENDING;
-      MDNSCPP_INFO << describe() << ": browse started." << MDNSCPP_ENDL;
-    }
-
-    struct timeval time{};
-    time.tv_sec = 10;
-    refreshTimer_->update(EventLoop::TimeoutRelative{time});
+    startBrowse();
+    scheduleRefreshTimer();
   }
 
   void Win32Browser::cancel()
@@ -197,7 +229,8 @@ namespace mdnscpp
 
     if (status != ERROR_SUCCESS)
     {
-      MDNSCPP_ERROR << "DnsServiceBrowseCancel() failed" << MDNSCPP_ENDL;
+      MDNSCPP_ERROR << describe() << ": DnsServiceBrowseCancel() failed with "
+                    << status << MDNSCPP_ENDL;
     }
     state_ = State::INIT;
   }
@@ -257,6 +290,9 @@ namespace mdnscpp
       return;
 
     queue_.schedule([result = std::move(result), this]() {
+      if (hasError())
+        return;
+
       auto it = resolves_.find(result.queryName);
 
       if (result.ttl)
