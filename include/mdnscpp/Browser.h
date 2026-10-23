@@ -37,7 +37,30 @@ namespace mdnscpp
      */
     int getError() const;
 
-    std::shared_ptr<void> addResult(std::shared_ptr<BrowseResult> result);
+    /**
+     * Holds a result in the browser. Destroying the last shared_ptr
+     * removes it. The result can be read to build a replacement with
+     * updated fields.
+     */
+    class ResultRemovalContext
+    {
+    public:
+      ResultRemovalContext(std::shared_ptr<Browser> browser,
+          std::shared_ptr<BrowseResult> result);
+      ~ResultRemovalContext();
+
+      ResultRemovalContext(const ResultRemovalContext &) = delete;
+      ResultRemovalContext &operator=(const ResultRemovalContext &) = delete;
+
+      std::shared_ptr<BrowseResult> getResult() const { return result_; }
+
+    private:
+      std::weak_ptr<Browser> browser_;
+      std::shared_ptr<BrowseResult> result_;
+    };
+
+    std::shared_ptr<ResultRemovalContext> addResult(
+        std::shared_ptr<BrowseResult> result);
 
     void insertResult(std::shared_ptr<BrowseResult> result);
     void removeResult(std::shared_ptr<BrowseResult> result);
