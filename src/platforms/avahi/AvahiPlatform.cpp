@@ -112,7 +112,8 @@ namespace mdnscpp
     };
 
     if (!startClient())
-      MDNSCPP_THROW(PlatformError, failedToConnectMessage(lastClientError_));
+      MDNSCPP_THROW(PlatformError, PlatformType::Avahi, lastClientError_,
+          failedToConnectMessage(lastClientError_));
   }
 
   AvahiPlatform::~AvahiPlatform()
@@ -128,7 +129,8 @@ namespace mdnscpp
       const std::string &domain, size_t interfaceIndex, IPProtocol ipProtocol)
   {
     if (!avahiClient_)
-      MDNSCPP_THROW(PlatformError, failedToConnectMessage(lastClientError_));
+      MDNSCPP_THROW(PlatformError, PlatformType::Avahi, lastClientError_,
+          failedToConnectMessage(lastClientError_));
 
     auto browser = std::make_shared<AvahiBrowser>(shared_from_this(), type,
         protocol, onResultsChanged, domain, interfaceIndex, ipProtocol);
@@ -136,9 +138,10 @@ namespace mdnscpp
     // Synchronous path: a failure here is reported to the caller.
     if (!paused_ && !browser->unpause())
     {
-      MDNSCPP_THROW(PlatformError,
+      int err = avahi_client_errno(avahiClient_);
+      MDNSCPP_THROW(PlatformError, PlatformType::Avahi, err,
           std::string("Failed to create avahi service browser: ") +
-              avahi_strerror(avahi_client_errno(avahiClient_)));
+              avahi_strerror(err));
     }
 
     browsers_.push_back(browser.get());

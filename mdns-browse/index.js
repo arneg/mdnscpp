@@ -43,7 +43,14 @@ export function find(options, predicate, signal) {
 
     let cleanup;
 
-    cleanup = startBrowse(options, (results) => {
+    cleanup = startBrowse(options, (results, error) => {
+      if (error) {
+        reject(error);
+        if (cleanup) cleanup();
+        cleanup = null;
+        return;
+      }
+
       const result = results.find(predicate);
 
       if (result) {

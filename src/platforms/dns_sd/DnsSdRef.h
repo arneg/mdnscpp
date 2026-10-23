@@ -44,7 +44,7 @@ namespace mdnscpp
     virtual void onRefError(DNSServiceErrorType error);
 
   private:
-    DNSServiceErrorType callbackError_ = kDNSServiceErr_NoError;
+    DNSServiceErrorType pendingCloseError_ = kDNSServiceErr_NoError;
 
     void process();
   };

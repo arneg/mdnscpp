@@ -37,7 +37,7 @@ namespace mdnscpp
 
   void DnsSdRef::failFromCallback(DNSServiceErrorType error)
   {
-    callbackError_ = error;
+    pendingCloseError_ = error;
   }
 
   void DnsSdRef::onRefError(DNSServiceErrorType) {}
@@ -47,20 +47,29 @@ namespace mdnscpp
     if (!sdRef_)
       return;
 
-    DNSServiceErrorType error = DNSServiceProcessResult(sdRef_);
+    DNSServiceErrorType processError = DNSServiceProcessResult(sdRef_);
+    DNSServiceErrorType error = processError;
 
     if (error == kDNSServiceErr_NoError)
-      error = callbackError_;
+      error = pendingCloseError_;
 
-    if (error != kDNSServiceErr_NoError)
+    if (error == kDNSServiceErr_NoError)
+      return;
+
+    if (processError != kDNSServiceErr_NoError)
     {
       MDNSCPP_ERROR << "DNSServiceProcessResult() failed with " << error
                     << MDNSCPP_ENDL;
-      callbackError_ = kDNSServiceErr_NoError;
-      // Without this the socket stays readable (POLLHUP) and the loop calls
-      // process() without end.
-      close();
-      onRefError(error);
     }
+    else
+    {
+      MDNSCPP_ERROR << "DNSService operation failed with " << error
+                    << MDNSCPP_ENDL;
+    }
+    pendingCloseError_ = kDNSServiceErr_NoError;
+    // Without this the socket stays readable (POLLHUP) and the loop calls
+    // process() without end.
+    close();
+    onRefError(error);
   }
 } // namespace mdnscpp

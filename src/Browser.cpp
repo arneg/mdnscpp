@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <mdnscpp/Browser.h>
 #include <mdnscpp/validation.h>
+#include <utility>
 
 namespace mdnscpp
 {
@@ -58,7 +59,19 @@ namespace mdnscpp
     return results_;
   }
 
-  int Browser::getError() const { return error_; }
+  const PlatformError &Browser::getError() const
+  {
+    MDNSCPP_ASSERT(error_);
+    return *error_;
+  }
+
+  void Browser::fail(PlatformError error)
+  {
+    if (error_)
+      return;
+    error_ = std::move(error);
+    triggerNotifyResultsChanged();
+  }
 
   std::shared_ptr<Browser::ResultRemovalContext> Browser::addResult(
       std::shared_ptr<BrowseResult> result)

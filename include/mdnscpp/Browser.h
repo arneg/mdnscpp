@@ -2,10 +2,12 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
 
 #include "BrowseResult.h"
+#include "Error.h"
 #include "EventLoop.h"
 #include "Types.h"
 
@@ -31,11 +33,14 @@ namespace mdnscpp
     const std::unordered_set<std::shared_ptr<BrowseResult>> getResults() const;
 
     /**
-     * The platform error that stopped this browser, or 0 while it runs. A
-     * browser with an error has no results and does not browse again; create
-     * a new one to retry.
+     * True if a platform error stopped this browser. A browser with an
+     * error has no results and does not browse again; create a new one to
+     * retry.
      */
-    int getError() const;
+    bool hasError() const { return error_.has_value(); }
+
+    /** Requires hasError(). */
+    const PlatformError &getError() const;
 
     /**
      * Holds a result in the browser. Destroying the last shared_ptr
@@ -75,10 +80,15 @@ namespace mdnscpp
     const size_t interfaceIndex_;
     const IPProtocol ipProtocol_;
     bool notifyResultsTimerPending_ = false;
-    int error_ = 0;
+    std::optional<PlatformError> error_;
 
     virtual std::shared_ptr<Browser> getSharedFromThis() = 0;
     void notifyResultsChanged();
     void triggerNotifyResultsChanged();
+    /**
+     * Records a fatal platform error and notifies. First call wins. The
+     * caller must drop its lookups so results empty via ResultRemovalContext.
+     */
+    void fail(PlatformError error);
   };
 } // namespace mdnscpp

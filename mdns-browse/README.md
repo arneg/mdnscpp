@@ -25,7 +25,11 @@ const criteria = {
   ipProtocol: "ipv4",
 };
 
-const browser = startBrowse(criteria, (services) => {
+const browser = startBrowse(criteria, (services, error) => {
+  if (error) {
+    console.error(error);
+    return;
+  }
   console.log("Discovered services:", services);
 });
 ```
