@@ -9,7 +9,8 @@
     "clean": "node-gyp clean",
     "prebuildify": "prebuildify --napi --strip --name mdns-browse",
     "link-local": "node scripts/link-local.js",
-    "test": "node --test --test-concurrency 1",
+    "test:prebuilt": "node --test --test-concurrency 1",
+    "test": "npm run prebuildify && npm run link-local && npm run test:prebuilt",
     "smoke": "node scripts/smoke.js",
     "assemble": "node scripts/assemble.js"
   },
