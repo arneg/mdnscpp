@@ -80,8 +80,7 @@ namespace mdnscpp
    * LibuvPoll
    */
 
-  LibuvLoop::LibuvPoll::LibuvPoll(LibuvWatch *watch, int fd)
-      : watch_(watch), fd_(fd)
+  LibuvLoop::LibuvPoll::LibuvPoll(LibuvWatch *watch, int fd) : watch_(watch)
   {
     uv_poll_init(watch->getUvLoop(), &uv_poll_, fd);
     uv_handle_set_data(reinterpret_cast<uv_handle_t *>(&uv_poll_), this);
@@ -206,8 +205,7 @@ namespace mdnscpp
 
   LibuvLoop::LibuvTimeout::LibuvTimeout(
       LibuvLoop &loop, TimeoutState state, Callback callback)
-      : Timeout(state, callback), loop_(loop), time_{0, 0},
-        timer_(new LibuvTimer(this))
+      : Timeout(state, callback), loop_(loop), timer_(new LibuvTimer(this))
   {
     install();
   }
@@ -270,7 +268,7 @@ namespace mdnscpp
    */
 
   LibuvLoop::LibuvAsync::LibuvAsync(LibuvLoop &loop, Callback callback)
-      : InternalAsync(callback), loop_(loop)
+      : InternalAsync(callback)
   {
     if (uv_async_init(loop.getUvLoop(), &uv_async_, &asyncCallback))
     {

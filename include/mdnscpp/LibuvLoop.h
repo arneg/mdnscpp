@@ -41,7 +41,6 @@ namespace mdnscpp
     private:
       LibuvWatch *watch_;
       uv_poll_t uv_poll_;
-      int fd_;
     };
 
     class LibuvTimer
@@ -86,7 +85,6 @@ namespace mdnscpp
 
     private:
       LibuvLoop &loop_;
-      struct timeval time_;
       LibuvTimer *timer_;
 
       void install();
@@ -103,7 +101,6 @@ namespace mdnscpp
       static void asyncCallback(uv_async_t *);
       static void closeCallback(uv_handle_t *);
 
-      LibuvLoop &loop_;
       uv_async_t uv_async_;
     };
 
