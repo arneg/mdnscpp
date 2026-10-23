@@ -192,10 +192,18 @@ namespace mdnscpp
       browser->pause();
     }
     stopClient();
-    // Restarting can fail (D-Bus gone). Log and leave the client null;
-    // createBrowser() will surface this as a PlatformError. Browsers stay
-    // paused.
-    startClient();
+    // Restarting can fail (D-Bus gone). Existing browsers are already
+    // paused (empty results); fail them so the caller can tell this
+    // apart from "nothing on the network". createBrowser() still throws
+    // if the client is null.
+    if (!startClient())
+    {
+      for (AvahiBrowser *browser : browsers_)
+      {
+        browser->failWithError(
+            lastClientError_, failedToConnectMessage(lastClientError_));
+      }
+    }
   }
 
   void AvahiPlatform::unpause()
@@ -212,7 +220,14 @@ namespace mdnscpp
     for (AvahiBrowser *browser : browsers_)
     {
       // Failure is logged inside unpause(). Keep going for the others.
-      browser->unpause();
+      if (!browser->unpause())
+      {
+        int err =
+            avahiClient_ ? avahi_client_errno(avahiClient_) : lastClientError_;
+        browser->failWithError(
+            err, std::string("Failed to create avahi service browser: ") +
+                     avahi_strerror(err));
+      }
     }
   }
 
