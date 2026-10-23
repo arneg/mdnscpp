@@ -59,9 +59,9 @@ namespace mdnscpp
 
     if (kDNSServiceErr_NoError != error)
     {
-      MDNSCPP_THROW(
-          PlatformError, std::string("DNSServiceBrowse failed with error ") +
-                             std::to_string(error));
+      MDNSCPP_THROW(PlatformError, PlatformType::DnsSd, error,
+          std::string("DNSServiceBrowse failed with error ") +
+              std::to_string(error));
     }
 
     return sdRef;
@@ -142,8 +142,9 @@ namespace mdnscpp
   {
     MDNSCPP_ERROR << describe() << " stopped with error " << error
                   << MDNSCPP_ENDL;
-    error_ = error;
     resolves_.clear();
-    triggerNotifyResultsChanged();
+    fail(PlatformError(PlatformType::DnsSd, error,
+        std::string("DNSServiceBrowse stopped with error ") +
+            std::to_string(error)));
   }
 } // namespace mdnscpp

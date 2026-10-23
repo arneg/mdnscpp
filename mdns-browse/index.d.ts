@@ -23,6 +23,14 @@ export type BrowseResult = {
   txtRecords: TxtRecord[];
 };
 
+export type PlatformType = "dns_sd" | "avahi" | "win32";
+
+export interface PlatformError extends Error {
+  code: "ERR_MDNS_PLATFORM";
+  platform: PlatformType;
+  errno: number;
+}
+
 export function find(
   options: BrowseCriteria,
   predicate?: (result: BrowseResult) => boolean,
@@ -31,5 +39,5 @@ export function find(
 
 export function startBrowse(
   options: BrowseCriteria,
-  callback: (results: BrowseResult[]) => void
+  callback: (results: BrowseResult[], error: PlatformError | null) => void
 ): () => void;

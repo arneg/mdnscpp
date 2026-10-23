@@ -3,6 +3,7 @@
 #include "../../src/debug.h"
 #include <get-uv-event-loop-napi.h>
 #include <iostream>
+#include <mdnscpp/Error.h>
 #include <mdnscpp/LibuvLoop.h>
 #include <mdnscpp/Platform.h>
 #include <mdnscpp/validation.h>
@@ -10,6 +11,19 @@
 
 #include <cmath>
 #include <string>
+
+// JS Error passed as the browse callback's second argument.
+static Napi::Error makePlatformJsError(
+    Napi::Env env, const mdnscpp::PlatformError &error)
+{
+  auto jsError = Napi::Error::New(env, error.what());
+  Napi::Object value = jsError.Value();
+  value.Set("code", Napi::String::New(env, "ERR_MDNS_PLATFORM"));
+  value.Set("platform",
+      Napi::String::New(env, mdnscpp::describePlatformType(error.platform())));
+  value.Set("errno", Napi::Number::New(env, error.code()));
+  return jsError;
+}
 
 class BrowseContext
 {
@@ -129,7 +143,12 @@ void BrowseContext::onResultsChanged(std::shared_ptr<mdnscpp::Browser> browser)
   for (auto entry : oldResults)
     resultCache_.erase(entry);
 
-  callbackRef_.MakeCallback(env_.Global(), {std::move(results)}, asyncCtx_);
+  Napi::Value jsError = env_.Null();
+  if (browser->hasError())
+    jsError = makePlatformJsError(env_, browser->getError()).Value();
+
+  callbackRef_.MakeCallback(
+      env_.Global(), {std::move(results), jsError}, asyncCtx_);
   MDNSCPP_INFO << "returned to onResultsChanged" << MDNSCPP_ENDL;
 }
 

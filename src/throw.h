@@ -5,26 +5,27 @@
 #ifdef __cpp_exceptions
 #  include <stdexcept>
 #elif !defined(NDEBUG)
+#  include <stdexcept>
 #else
 #  include <exception>
 #endif
 
 #ifdef __cpp_exceptions
-#  define MDNSCPP_THROW(EXCEPTION_TYPE, MSG)                                   \
+#  define MDNSCPP_THROW(EXCEPTION_TYPE, ...)                                   \
     do                                                                         \
     {                                                                          \
-      throw EXCEPTION_TYPE(MSG);                                               \
+      throw EXCEPTION_TYPE(__VA_ARGS__);                                       \
     } while (0);
 #elif !defined(NDEBUG)
-#  define MDNSCPP_THROW(EXCEPTION_TYPE, MSG)                                   \
+#  define MDNSCPP_THROW(EXCEPTION_TYPE, ...)                                   \
     do                                                                         \
     {                                                                          \
-      /* MSG may be any expression convertible to the exception's argument,  \
-         e.g. a std::string, so it cannot be negated. */ \
-      assert(((void)(MSG), false));                                            \
+      /* Arguments may be any expressions convertible to the exception's     \
+         constructor, e.g. a std::string, so they cannot be negated. */ \
+      assert(((void)EXCEPTION_TYPE(__VA_ARGS__), false));                      \
     } while (0);
 #else
-#  define MDNSCPP_THROW(EXCEPTION_TYPE, MSG)                                   \
+#  define MDNSCPP_THROW(EXCEPTION_TYPE, ...)                                   \
     do                                                                         \
     {                                                                          \
       std::terminate();                                                        \

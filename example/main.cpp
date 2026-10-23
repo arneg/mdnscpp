@@ -1,5 +1,6 @@
 #include <mdnscpp/CallQueue.h>
 #include <mdnscpp/DefaultLoop.h>
+#include <mdnscpp/Error.h>
 #include <mdnscpp/Platform.h>
 #include <mdnscpp/utils.h>
 
@@ -15,6 +16,14 @@ int main(int argc, const char **argv)
   auto platform = mdnscpp::createPlatform(loop);
 
   auto browser = platform->createBrowser("_oca", "_tcp", [](auto browser) {
+    if (browser->hasError())
+    {
+      const auto &error = browser->getError();
+      std::cout << "Browser failed ("
+                << mdnscpp::describePlatformType(error.platform()) << " "
+                << error.code() << "): " << error.what() << std::endl;
+      return;
+    }
     auto results = mdnscpp::getSortedList(browser->getResults());
     std::cout << "Results (" << results.size() << "): " << std::endl;
     for (const auto &result : results)
