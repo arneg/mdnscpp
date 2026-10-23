@@ -119,9 +119,11 @@ jobs:
           path: mdns-browse-build/prebuilds
           if-no-files-found: error
 
+      # Use test:prebuilt: `npm test` would rebuild, dropping the ad-hoc
+      # signature applied above. The prebuild is already linked for smoke.
       - name: Full test suite
         continue-on-error: ${{ env.FULL_TESTS_REQUIRED != 'true' }}
-        run: npm test -w mdns-browse-build
+        run: npm run test:prebuilt -w mdns-browse-build
 
   # ---------------------------------------------------------------------------
   # Linux: build inside containers so the glibc baseline is controlled (glibc
@@ -202,10 +204,12 @@ jobs:
           sudo systemctl start avahi-daemon || true
           systemctl is-active avahi-daemon || true
 
+      # Use test:prebuilt: `npm test` would rebuild on the host and replace
+      # the manylinux binary the container just produced and linked.
       - name: Full test suite
         if: matrix.libc == 'glibc'
         continue-on-error: ${{ env.FULL_TESTS_REQUIRED != 'true' }}
-        run: npm test -w mdns-browse-build
+        run: npm run test:prebuilt -w mdns-browse-build
 
   # ---------------------------------------------------------------------------
   # The addon is Node-API, so one binary must load on every supported Node.js.
