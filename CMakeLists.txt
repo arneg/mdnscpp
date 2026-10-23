@@ -4,7 +4,20 @@ project(libmdnscpp LANGUAGES CXX)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-include(FindOrFetchLibuv)
+option(MDNSCPP_BUILD_TESTS "Build the C++ tests (see tests/CMakeLists.txt)" OFF)
+option(MDNSCPP_VERBOSE "Write debug output to stderr" OFF)
+option(MDNSCPP_WITH_LIBUV "Build LibuvLoop when libuv is available" ON)
+option(MDNSCPP_FETCH_LIBUV "Fetch a pinned libuv if find_package does not find one" OFF)
+
+# find_package only, unless a caller (the Windows example) sets
+# MDNSCPP_FETCH_LIBUV. The node addon compiles LibuvLoop against Node's
+# libuv and does not use this file.
+if(MDNSCPP_WITH_LIBUV)
+  find_package(libuv QUIET)
+  if(NOT libuv_FOUND AND MDNSCPP_FETCH_LIBUV)
+    include(FetchLibuv)
+  endif()
+endif()
 
 add_library(libmdnscpp)
 
@@ -36,7 +49,9 @@ target_sources(libmdnscpp PRIVATE
   src/guardCallback.h
 )
 
-target_compile_definitions(libmdnscpp PRIVATE MDNSCPP_ENABLE_VERBOSE_DEBUG)
+if(MDNSCPP_VERBOSE)
+  target_compile_definitions(libmdnscpp PRIVATE MDNSCPP_ENABLE_VERBOSE_DEBUG)
+endif()
 
 find_library(LIB_DNS_SD NAMES dns_sd)
 find_library(LIB_AVAHI NAMES avahi-client)
@@ -50,15 +65,23 @@ if(NOT WIN32)
   target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_LOOP_POLL)
 endif()
 
-if(libuv_FOUND)
-  message("using libuv")
+if(MDNSCPP_WITH_LIBUV AND libuv_FOUND)
+  message(STATUS "Using libuv")
   target_sources(libmdnscpp PRIVATE
     include/mdnscpp/LibuvLoop.h
     src/LibuvLoop.cpp
   )
-  target_link_libraries(libmdnscpp PUBLIC "${libuv_LIBRARIES}")
+  # FetchContent builds the uv / uv_a targets. find_package(libuv) only sets
+  # the Find-module variables.
+  if(TARGET uv_a)
+    target_link_libraries(libmdnscpp PUBLIC uv_a)
+  elseif(TARGET uv)
+    target_link_libraries(libmdnscpp PUBLIC uv)
+  else()
+    target_link_libraries(libmdnscpp PUBLIC "${libuv_LIBRARIES}")
+    target_include_directories(libmdnscpp PUBLIC "${libuv_INCLUDE_DIRS}")
+  endif()
   target_compile_definitions(libmdnscpp PUBLIC LIBMDNS_LOOP_LIBUV)
-  target_include_directories(libmdnscpp PUBLIC "${libuv_INCLUDE_DIRS}")
 endif()
 
 if(LIB_AVAHI)
@@ -122,9 +145,6 @@ endif()
 target_compile_features(libmdnscpp PUBLIC cxx_std_17)
 target_include_directories(libmdnscpp PUBLIC include)
 
-add_subdirectory(example)
-
-option(MDNSCPP_BUILD_TESTS "Build the C++ tests (see tests/CMakeLists.txt)" OFF)
 if(MDNSCPP_BUILD_TESTS)
   add_subdirectory(tests)
 endif()
