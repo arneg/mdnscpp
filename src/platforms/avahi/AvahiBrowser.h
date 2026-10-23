@@ -28,10 +28,16 @@ namespace mdnscpp
     void pause();
     // Starts the Avahi service browser. Returns false if it cannot be
     // created (no client, or Avahi rejected the query). Does not throw:
-    // it is also called from the Avahi client callback.
+    // it is also called from the Avahi client callback. A browser that
+    // already hasError() is left dead and this returns true.
     bool unpause();
 
     AvahiClient *getAvahiClient() const;
+
+    // Drops lookups and records a fatal platform error. Safe from the
+    // Avahi client callback; not from the service-browser callback
+    // (that path must not free the Avahi browser object).
+    void failWithError(int err, const std::string &message);
 
   protected:
     std::shared_ptr<Browser> getSharedFromThis() override;

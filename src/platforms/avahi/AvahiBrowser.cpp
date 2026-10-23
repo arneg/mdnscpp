@@ -6,6 +6,7 @@
 #include "../../guardCallback.h"
 
 #include <avahi-common/error.h>
+#include <mdnscpp/Error.h>
 
 namespace mdnscpp
 {
@@ -64,8 +65,17 @@ namespace mdnscpp
     MDNSCPP_INFO << describe() << " stopped" << MDNSCPP_ENDL;
   }
 
+  void AvahiBrowser::failWithError(int err, const std::string &message)
+  {
+    pause();
+    fail(PlatformError(PlatformType::Avahi, err, message));
+  }
+
   bool AvahiBrowser::unpause()
   {
+    if (hasError())
+      return true;
+
     if (avahiBrowser_)
       return true;
 
@@ -105,6 +115,20 @@ namespace mdnscpp
       AvahiProtocol protocol, AvahiBrowserEvent event, const char *name,
       const char *type, const char *domain, AvahiLookupResultFlags flags)
   {
+    if (event == AVAHI_BROWSER_FAILURE)
+    {
+      AvahiClient *client = getAvahiClient();
+      int err = client ? avahi_client_errno(client) : AVAHI_ERR_FAILURE;
+      MDNSCPP_ERROR << describe() << " browsing failed: " << avahi_strerror(err)
+                    << MDNSCPP_ENDL;
+      // Do not avahi_service_browser_free from this callback. Drop results
+      // and fail; pause() in the destructor or on a later client pause.
+      resolvers_.clear();
+      fail(PlatformError(PlatformType::Avahi, err,
+          std::string("Avahi service browser failed: ") + avahi_strerror(err)));
+      return;
+    }
+
     if (event == AVAHI_BROWSER_NEW || event == AVAHI_BROWSER_REMOVE)
     {
       if (!name || !type || !domain)
