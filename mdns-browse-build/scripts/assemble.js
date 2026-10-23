@@ -7,7 +7,7 @@
 //
 // Maintainer (after a green tag run, on a Mac):
 //   1. Download the mdns-browse-package-unsigned artifact from the run page.
-//   2. npm run assemble -- --from-tarball <that.tgz-or-zip> --tag mdns-browse-vX.Y.Z \
+//   2. npm run assemble -- --from-tarball <that.tgz-or-zip> --tag mdns-browser/vX.Y.Z \
 //        --sign TEAMID
 //   3. npm publish the tarball this script prints.
 
@@ -61,7 +61,7 @@ Options:
   --from-dir <dir>             CI: directory of per-target .node files.
   --from-tarball <path>        Maintainer: the unsigned npm tarball from CI,
                                or the GitHub artifact zip that contains it.
-  --tag <tag>                  Require mdns-browse-vX.Y.Z to match the
+  --tag <tag>                  Require mdns-browser/vX.Y.Z to match the
                                package.json being packed.
   --sign <TEAMID>              Codesign the darwin binaries with the Developer
                                ID Application identity for this team (macOS
@@ -313,12 +313,14 @@ async function extractNpmTarball(tgz) {
   return { dir, cleanup: tmp };
 }
 
+const RELEASE_TAG_PREFIX = "mdns-browser/v";
+
 function requireTagMatches(version, tag) {
   if (!tag) return;
-  if (!/^mdns-browse-v/.test(tag)) {
-    fail(`tag ${tag} does not look like mdns-browse-vX.Y.Z`);
+  if (!tag.startsWith(RELEASE_TAG_PREFIX)) {
+    fail(`tag ${tag} does not look like ${RELEASE_TAG_PREFIX}X.Y.Z`);
   }
-  const tagVersion = tag.replace(/^mdns-browse-v/, "");
+  const tagVersion = tag.slice(RELEASE_TAG_PREFIX.length);
   if (tagVersion !== version) {
     fail(`tag version ${tagVersion} != package.json version ${version}`);
   }

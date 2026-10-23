@@ -6,7 +6,7 @@ name: mdns-browse prebuilds
 # here signs or publishes; the maintainer downloads that tarball and runs
 # assemble.js --from-tarball --sign on a Mac.
 #
-# Tag runs (mdns-browse-vX.Y.Z) additionally attest build provenance.
+# Tag runs (mdns-browser/vX.Y.Z) additionally attest build provenance.
 
 on:
   pull_request:
@@ -22,8 +22,8 @@ on:
     # Path filters are not applied to tag pushes.
     # TEMPORARY: the CI bring-up branch is listed so that pushing it runs the
     # workflow without a pull request. Remove before merging.
-    branches: [main, taskbranch/ci-prebuild]
-    tags: ["mdns-browse-v*"]
+    branches: [main]
+    tags: ["mdns-browser/v*"]
     paths:
       - ".github/workflows/mdns-browse-build.yml"
       - "package.json"
@@ -108,7 +108,7 @@ jobs:
           npm run smoke -w mdns-browse-build
 
       - name: Attest build provenance
-        if: startsWith(github.ref, 'refs/tags/mdns-browse-v')
+        if: startsWith(github.ref, 'refs/tags/mdns-browser/v')
         uses: actions/attest-build-provenance@v4
         with:
           subject-path: mdns-browse-build/prebuilds/**/*.node
@@ -183,7 +183,7 @@ jobs:
             sh /work/mdns-browse-build/scripts/ci/build-linux.sh
 
       - name: Attest build provenance
-        if: startsWith(github.ref, 'refs/tags/mdns-browse-v')
+        if: startsWith(github.ref, 'refs/tags/mdns-browser/v')
         uses: actions/attest-build-provenance@v4
         with:
           subject-path: mdns-browse-build/prebuilds/**/*.node
@@ -309,9 +309,9 @@ jobs:
       - run: npm ci --ignore-scripts
 
       - name: Check tag matches package version
-        if: startsWith(github.ref, 'refs/tags/mdns-browse-v')
+        if: startsWith(github.ref, 'refs/tags/mdns-browser/v')
         run: |
-          tag_version="${GITHUB_REF#refs/tags/mdns-browse-v}"
+          tag_version="${GITHUB_REF#refs/tags/mdns-browser/v}"
           pkg_version="$(node -p "require('./mdns-browse/package.json').version")"
           if [ "$tag_version" != "$pkg_version" ]; then
             echo "tag version $tag_version != mdns-browse/package.json version $pkg_version" >&2
@@ -331,7 +331,7 @@ jobs:
       - name: Assemble package
         run: |
           tag_args=()
-          if [[ "${GITHUB_REF}" == refs/tags/mdns-browse-v* ]]; then
+          if [[ "${GITHUB_REF}" == refs/tags/mdns-browser/v* ]]; then
             tag_args=(--tag "${GITHUB_REF_NAME}")
           fi
           npm run assemble -w mdns-browse-build -- \
