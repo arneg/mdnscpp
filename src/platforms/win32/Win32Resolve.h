@@ -39,6 +39,7 @@ namespace mdnscpp
         DWORD Status, PVOID pQueryContext, PDNS_SERVICE_INSTANCE pInstance);
 
     void onResolveResult(PDNS_SERVICE_INSTANCE pInstance);
+    void onResolveFailed(DWORD status);
     void cancel();
     uint64_t resolveAge() const;
     uint64_t resultAge() const;
